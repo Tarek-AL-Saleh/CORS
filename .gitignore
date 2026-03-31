@@ -1,0 +1,64 @@
+.env
+.vscode
+.venv
+.sixth
+./document
+
+
+# --- Python (FastAPI / AI Engine) ---
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+venv/
+ENV/
+build/
+dist/
+*.spec
+
+# ML Model files (Keep your source, ignore large binaries if needed)
+# *.pkl
+# *.joblib
+
+# --- Node / React (Frontend) ---
+node_modules/
+frontend/node_modules/
+.pnp
+.pnp.js
+coverage/
+frontend/build/
+.eslintcache
+.stylelintcache
+.next/
+out/
+build/
+
+# --- Databases ---
+# Ignore local SQLite or pgAdmin log files
+*.db
+*.sqlite3
+pgadmin4.db
+sessions/
+storage/
+
+# --- Documents & OS ---
+# Ignore temporary office files and OS metadata
+~$*
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Environment Secrets (CRITICAL) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo

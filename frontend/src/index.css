@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-main: #f8fafc;
+    /* Sophisticated Ivory/Light Slate */
+    --bg-surface: #ffffff;
+    /* Pure White Surface */
+    --bg-sidebar: #f8fafc;
+    /* Ivory Sidebar */
+
+    --text-primary: #020617;
+    /* Deepest Slate */
+    --text-secondary: #334155;
+    /* Slate 700 */
+    --text-muted: #64748b;
+    /* Slate 500 */
+
+    --brand-primary: #059669;
+    /* Institutional Emerald / Deep Teal */
+    --brand-hover: #047857;
+    --brand-faded: #ecfdf5;
+
+    --border-subtle: #f1f5f9;
+    /* Slate 100 - Hairline */
+    --border-accent: #e2e8f0;
+    /* Slate 200 */
+
+    --status-success: #059669;
+    --status-error: #dc2626;
+    --status-warning: #d97706;
+
+    --radius-premium: 0.375rem;
+    /* Compact radius (6px) */
+    --shadow-premium: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+
+    color-scheme: light;
+  }
+
+  .dark {
+    --bg-main: #02040a;
+    /* Deep Midnight Obsidian */
+    --bg-surface: #0d1117;
+    /* Elevated Carbon */
+    --bg-sidebar: #02040a;
+    /* Midnight Sidebar */
+
+    --text-primary: #f8fafc;
+    /* Pure Contrast White */
+    --text-secondary: #cbd5e1;
+    /* Slate 300 - Much Higher Legibility than 400/500 */
+    --text-muted: #94a3b8;
+    /* Slate 400 */
+
+    --brand-primary: #10b981;
+    /* High contrast Emerald for Dark Mode */
+    --brand-hover: #34d399;
+    --brand-faded: #064e3b;
+
+    --border-subtle: #21262d;
+    /* Darker, Hairline Border */
+    --border-accent: #30363d;
+    /* Slate 800 */
+
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    font-size: 14px; /* Global 14px base for 80% scale feel */
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .dark body {
+    background-image: none;
+  }
+
+  * {
+    @apply box-border;
+    border-color: var(--border-subtle);
+  }
+
+  /* Thin, elegant, institutional scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-accent);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  .font-body {
+    font-family: 'Inter', sans-serif;
+  }
+
+  .bg-main {
+    background-color: var(--bg-main);
+  }
+
+  .bg-surface {
+    background-color: var(--bg-surface);
+  }
+
+  .bg-sidebar {
+    background-color: var(--bg-sidebar);
+  }
+
+  .text-main {
+    color: var(--text-primary);
+  }
+
+  .text-muted {
+    color: var(--text-secondary);
+  }
+
+  .border-premium {
+    border: 1px solid var(--border-subtle);
+  }
+
+  .shadow-premium {
+    box-shadow: var(--shadow-premium);
+  }
+}

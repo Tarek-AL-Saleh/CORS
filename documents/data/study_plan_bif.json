@@ -1,0 +1,59 @@
+{
+    "sophomore": {
+        "total_csm_credits": 17,
+        "fall": {
+            "csm_credits": 7,
+            "csm_courses": [
+                {"name": "BIF243", "credits": 3},
+                {"name": "BIF243B", "credits": 1},
+                {"name": "MTH201", "credits": 3}
+            ]
+        },
+        "spring": {
+            "csm_credits": 10,
+            "csm_courses": [
+                {"name": "MTH207", "credits": 3},
+                {"name": "BIF245", "credits": 3},
+                {"name": "BIF245B", "credits": 1},
+                {"name": "BIF415", "credits": 3}
+            ]
+        }
+    },
+    "junior": {
+        "total_csm_credits": 10,
+        "fall": {
+            "csm_credits": 4,
+            "csm_courses": [
+                {"name": "BIF310", "credits": 3},
+                {"name": "BIF310B", "credits": 1}
+            ]
+        },
+        "spring": {
+            "csm_credits": 6,
+            "csm_courses": [
+                {"name": "BIF205", "credits": 3},
+                {"name": "BIF244", "credits": 3}
+            ]
+        }
+    },
+    "senior": {
+        "total_csm_credits": 21,
+        "fall": {
+            "csm_credits": 15,
+            "csm_courses": [
+                {"name": "BIF345", "credits": 3},
+                {"name": "BIF524", "credits": 3},
+                {"name": "BIF375", "credits": 3},
+                {"name": "BIF_TECH_ELECTIVE", "credits": 3},
+                {"name": "BIF_TECH_ELECTIVE", "credits": 3}
+            ]
+        },
+        "spring": {
+            "csm_credits": 6,
+            "csm_courses": [
+                {"name": "BIF599", "credits": 3},
+                {"name": "BIF_TECH_ELECTIVE", "credits": 3}
+            ]
+        }
+    }
+}

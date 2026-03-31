@@ -1,0 +1,66 @@
+{
+    "sophomore": {
+        "total_csm_credits": 18,
+        "fall": {
+            "csm_credits": 10,
+            "csm_courses": [
+                {"name": "CSC243", "credits": 3},
+                {"name": "CSC243B", "credits": 1},
+                {"name": "MTH207", "credits": 3},
+                {"name": "MTH201", "credits": 3}
+            ]
+        },
+        "spring": {
+            "csm_credits": 8,
+            "csm_courses": [
+                {"name": "CSC245", "credits": 3},
+                {"name": "CSC245B", "credits": 1},
+                {"name": "CSC320", "credits": 3},
+                {"name": "CSC322", "credits": 1}
+            ]
+        }
+    },
+    "junior": {
+        "total_csm_credits": 23,
+        "fall": {
+            "csm_credits": 10,
+            "csm_courses": [
+                {"name": "CSC310", "credits": 3},
+                {"name": "CSC310B", "credits": 1},
+                {"name": "CSC375", "credits": 3},
+                {"name": "CSC326", "credits": 3}
+            ]
+        },
+        "spring": {
+            "csm_credits": 13,
+            "csm_courses": [
+                {"name": "CSC380", "credits": 3},
+                {"name": "CSC490", "credits": 3},
+                {"name": "MTH312", "credits": 3},
+                {"name": "CS_TECH_ELECTIVE", "credits": 3},
+                {"name": "CSC491", "credits": 1}
+            ]
+        }
+    },
+    "senior": {
+        "total_csm_credits": 24,
+        "fall": {
+            "csm_credits": 15,
+            "csm_courses": [
+                {"name": "CSC599", "credits": 3},
+                {"name": "CSC447", "credits": 3},
+                {"name": "MTH305", "credits": 3},
+                {"name": "CS_TECH_ELECTIVE", "credits": 3},
+                {"name": "CS_TECH_ELECTIVE", "credits": 3}
+            ]
+        },
+        "spring": {
+            "csm_credits": 9,
+            "csm_courses": [
+                {"name": "CSC430", "credits": 3},
+                {"name": "CS_TECH_ELECTIVE", "credits": 3},
+                {"name": "MATH_ELECTIVE", "credits": 3}
+            ]
+        }
+    }
+}
