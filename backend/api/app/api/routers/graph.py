@@ -24,7 +24,27 @@ def get_graph_data(db: Session = Depends(get_db)):
     nodes = []
     edges = []
     
+    # Pass 1: Build edges
     for c in courses:
+        try:
+            prereqs = json.loads(c.prerequisites) if c.prerequisites else []
+            for p in prereqs:
+                edges.append({
+                    "id": f"edge-{p}-{c.code}",
+                    "source": p,
+                    "target": c.code
+                })
+        except:
+            pass
+
+    # Pass 2: Find connected nodes
+    connected_nodes = {e["source"] for e in edges}.union({e["target"] for e in edges})
+
+    # Pass 3: Build nodes for connected courses only
+    for c in courses:
+        if c.code not in connected_nodes:
+            continue
+            
         b_info = bottlenecks.get(c.code, {"bottleneck_score": 0, "latent_demand": 0})
         nodes.append({
             "id": c.code,
@@ -37,16 +57,5 @@ def get_graph_data(db: Session = Depends(get_db)):
                 "latent_demand": b_info["latent_demand"]
             }
         })
-        
-        try:
-            prereqs = json.loads(c.prerequisites) if c.prerequisites else []
-            for p in prereqs:
-                edges.append({
-                    "id": f"edge-{p}-{c.code}",
-                    "source": p,
-                    "target": c.code
-                })
-        except:
-            pass
 
     return {"nodes": nodes, "edges": edges}

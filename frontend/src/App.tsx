@@ -5,6 +5,7 @@ import { DataManagement } from '@/pages/DataManagement'
 import { RecommendationEngine } from '@/pages/RecommendationEngine'
 import { PrerequisiteGraph } from '@/pages/PrerequisiteGraph'
 import { Scheduler } from '@/pages/Scheduler'
+import { LoginPage } from '@/pages/LoginPage'
 import { useNavigation } from '@/hooks/useNavigation'
 import type { PageId } from '@/types'
 
@@ -19,12 +20,28 @@ const PAGE_MAP: (navigate: (p: PageId) => void) => Record<PageId, React.ReactEle
 export default function App() {
   const { currentPage, navigate } = useNavigation('dashboard')
   const [collapsed, setCollapsed] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null) // null = loading
   
   // Theme logic
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 
            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
   })
+
+  // Quick rudimentary check assuming local dev for now without full me endpoint:
+  // In a real app we'd call `/auth/me` to read the httpOnly cookie.
+  // For basic UX demonstration we'll allow entering if they have a non-empty user state
+  useEffect(() => {
+    // If we wanted to check the cookie, we'd hit a backend endpoint /auth/me here
+    // For now, if the user reloads we just assume they need to login again unless we check an endpoint or localStorage.
+    // Let's use localStorage to persist the active username session status.
+    const savedUser = localStorage.getItem('auth_user')
+    if (savedUser) {
+      setIsAuthenticated(true)
+    } else {
+      setIsAuthenticated(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -37,8 +54,21 @@ export default function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light')
 
+  const handleLoginSuccess = (username: string) => {
+    localStorage.setItem('auth_user', username)
+    setIsAuthenticated(true)
+  }
+
   // Scheduler manages its own internal scroll
   const isScheduler = currentPage === 'scheduler'
+
+  if (isAuthenticated === null) {
+    return <div className="h-screen flex items-center justify-center bg-main text-main font-bold">Loading...</div>
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />
+  }
 
   return (
     <div className="flex h-screen bg-main overflow-hidden font-body">

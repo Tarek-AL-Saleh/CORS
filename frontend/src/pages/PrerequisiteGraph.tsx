@@ -47,7 +47,8 @@ export function PrerequisiteGraph() {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [selectedNode, setSelectedNode] = useState<any>(null)
-  
+  const threshold = 150
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -63,11 +64,17 @@ export function PrerequisiteGraph() {
 
         // Map colors & styles based on backend nodes
         const rfNodes = data.nodes.map((n: any) => {
-          const isBottleneck = n.data.bottleneck_score > 3 || n.data.latent_demand > 20
+          // Systemic Impact Formula: Demand + (5.0 * Recursive Yield)
+          // Average demand for bottleneck is 80. Threshold at 100 ensures high-impact courses bubble up.
+          const impactScore = n.data.latent_demand + (5.0 * n.data.bottleneck_score)
+          
+          const isBottleneck = impactScore > threshold
+
           return {
             id: n.id,
             data: { 
               ...n.data,
+              impactScore,
               isBottleneck
             },
             style: {
@@ -175,19 +182,23 @@ export function PrerequisiteGraph() {
                 
                 <div className="pt-6 border-t border-premium space-y-4">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase tracking-widest text-muted font-bold">Dependency Yield</span>
-                    <span className="text-lg font-bold text-main tabular-nums">{selectedNode.data.bottleneck_score} <span className="text-xs font-medium text-muted font-sans ml-1 text-right">courses</span></span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted font-bold">Systemic Pressure</span>
+                    <span className="text-lg font-bold text-main tabular-nums">{selectedNode.data.bottleneck_score} <span className="text-xs font-medium text-muted font-sans ml-1 text-right">courses blocked</span></span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase tracking-widest text-muted font-bold">Accumulated Demand</span>
-                    <span className="text-lg font-bold text-[var(--brand-primary)] tabular-nums">{selectedNode.data.latent_demand} <span className="text-xs font-medium text-muted font-sans ml-1 text-right">units</span></span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted font-bold">Latent Demand</span>
+                    <span className="text-lg font-bold text-main tabular-nums">{selectedNode.data.latent_demand} <span className="text-xs font-medium text-muted font-sans ml-1 text-right">students ready</span></span>
+                  </div>
+                  <div className="flex flex-col gap-1 border-t border-premium pt-4">
+                    <span className="text-[10px] uppercase tracking-widest text-[var(--brand-primary)] font-black">Final Impact Score</span>
+                    <span className="text-2xl font-black text-[var(--brand-primary)] tabular-nums">{selectedNode.data.impactScore}</span>
                   </div>
                 </div>
 
                 {selectedNode.data.isBottleneck && (
                   <div className="mt-6 p-4 bg-[var(--status-error)]/10 rounded-lg text-[11px] text-[var(--status-error)] font-bold leading-relaxed border border-[var(--status-error)]/20 flex gap-2">
                     <AlertTriangle className="w-4 h-4 flex-none" />
-                    <span>This entity is a critical flow bottleneck. Increasing section capacity or faculty allocation is advised.</span>
+                    <span>This entity is a critical systemic bottleneck (Score {'>'} {threshold}). Capacity expansion is mandatory for degree flow.</span>
                   </div>
                 )}
               </div>

@@ -75,8 +75,18 @@ class Doctor(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     allowed_courses = Column(Text, nullable=True) # JSON list
-    available_days = Column(Text, nullable=True)  # JSON list ["Monday", "Wednesday"]
-    available_times = Column(Text, nullable=True) # JSON config for slots
+    
+    availability = relationship('DoctorAvailability', back_populates='doctor', cascade="all, delete-orphan")
+
+class DoctorAvailability(Base):
+    __tablename__ = 'doctor_availability'
+    id = Column(Integer, primary_key=True, index=True)
+    doctor_id = Column(Integer, ForeignKey('doctors.id'), nullable=False)
+    days = Column(String, nullable=False)  # e.g., "M", "WF"
+    start = Column(String, nullable=False) # e.g., "08:00"
+    end = Column(String, nullable=False)   # e.g., "10:00"
+    
+    doctor = relationship('Doctor', back_populates='availability')
 
 class ScheduleEntry(Base):
     __tablename__ = 'schedule_entries'
@@ -111,3 +121,11 @@ class TrainingRecord(Base):
     gap_since_last_offered = Column(Integer, default=99)
     is_offered = Column(Integer, nullable=False) # 1 or 0
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)

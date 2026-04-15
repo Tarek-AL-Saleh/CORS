@@ -4,12 +4,18 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const apiClient = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 export const api = {
+  auth: {
+    login: (username: string, password: string) => apiClient.post('/auth/login', { username, password }).then(res => res.data),
+    verify2FA: (username: string, code: string) => apiClient.post('/auth/verify', { username, code }).then(res => res.data),
+    logout: () => apiClient.post('/auth/logout').then(res => res.data),
+  },
   data: {
     getCourses: () => apiClient.get('/data/courses').then(res => res.data),
     getOfferings: () => apiClient.get('/data/offerings').then(res => res.data),

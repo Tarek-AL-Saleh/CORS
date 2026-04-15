@@ -46,6 +46,12 @@ class DoctorResponse(DoctorBase):
     class Config:
         from_attributes = True
 
+class DoctorMinimal(BaseModel):
+    id: int
+    name: str
+    class Config:
+        from_attributes = True
+
 class PredictionEntryBase(BaseModel):
     course_code: str
     campus: str

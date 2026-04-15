@@ -26,6 +26,16 @@ class FeatureTransformer:
             for o in self.offerings
         ])
 
+        # Build inverse prerequisite map (Adjacency List) for Transitive Closure
+        self.adj = {c: [] for c in self.courses.keys()}
+        for c_code, c_obj in self.courses.items():
+            try:
+                prers = json.loads(c_obj.prerequisites) if c_obj.prerequisites else []
+                for p in prers:
+                    if p in self.adj:
+                        self.adj[p].append(c_code)
+            except: pass
+
     def _get_past_terms(self, current_year: int, current_sem: str, N: int = 1) -> List[tuple]:
         # Simple term lookback: Summer -> Spring -> Fall -> Summer
         order = {"Fall": 3, "Summer": 2, "Spring": 1}
@@ -112,16 +122,16 @@ class FeatureTransformer:
         return max(1, gap_terms)
 
     def _calc_bottleneck_score(self, course_code: str) -> int:
-        # Number of courses that have this course as a prereq
-        score = 0
-        for c in self.courses.values():
-            try:
-                pr = json.loads(c.prerequisites) if c.prerequisites else []
-                if course_code in pr:
-                    score += 1
-            except:
-                pass
-        return score
+        # Recursive Transitive Closure: How many courses in total rely on this course?
+        descendants = set()
+        stack = list(self.adj.get(course_code, []))
+        while stack:
+            curr = stack.pop()
+            if curr not in descendants:
+                descendants.add(curr)
+                # Add all courses that depend on 'curr'
+                stack.extend(self.adj.get(curr, []))
+        return len(descendants)
 
     def build_feature_vector(self, course_code: str, year: int, semester: str, campus: str) -> Dict[str, Any]:
         course = self.courses.get(course_code)

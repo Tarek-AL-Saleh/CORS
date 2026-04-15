@@ -13,6 +13,11 @@ export function Scheduler() {
   const [doctors, setDoctors] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  
+  // Drawer Editing State
+  const [isEditing, setIsEditing] = useState(false)
+  const [editProf, setEditProf] = useState('')
+  const [editRoom, setEditRoom] = useState('')
 
   const fetchSchedule = useCallback(async () => {
     try {
@@ -45,18 +50,26 @@ export function Scheduler() {
     fetchSchedule()
   }, [fetchSchedule])
 
+  useEffect(() => {
+    if (errorMsg) {
+      const timer = setTimeout(() => setErrorMsg(''), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [errorMsg])
+
   const handleAdd = useCallback(
     async (
-      day: WeekDay,
+      _day: WeekDay,
       startTime: string,
       duration: number,
       professor: string,
-      room: string
+      room: string,
+      pattern: string
     ) => {
       if (!selected) return
       
       let docId = doctors.find(d => d.name === professor)?.id
-      if (!docId && professor) {
+      if (!docId && professor && professor !== 'Unassigned') {
         try {
           const newDoc = await api.scheduler.createDoctor({ name: professor })
           setDoctors(p => [...p, newDoc])
@@ -69,8 +82,8 @@ export function Scheduler() {
       const postData = {
         course_code: selected.code,
         section_name: selected.name,
-        doctor_id: docId || 1, // Fallback to a valid ID
-        day: day,
+        doctor_id: docId || 0,
+        day: pattern,
         start_time: startTime,
         duration_mins: duration,
         room: room || 'TBD'
@@ -85,7 +98,7 @@ export function Scheduler() {
           courseCode: res.course_code,
           courseName: res.section_name,
           dept: selected.dept,
-          day: res.day as WeekDay,
+          day: res.day,
           startTime: res.start_time,
           durationMins: res.duration_mins,
           professor: professor,
@@ -100,34 +113,46 @@ export function Scheduler() {
     [selected, doctors]
   )
 
-  const handleUpdate = useCallback(async (id: string, professor: string, room: string) => {
-    // 1. Find doctor ID
-    let docId = doctors.find(d => d.name === professor)?.id
-    if (!docId && professor) {
-      try {
-        const newDoc = await api.scheduler.createDoctor({ name: professor })
-        setDoctors(p => [...p, newDoc])
-        docId = newDoc.id
-      } catch (e) {
-        console.error("Failed making doctor in update")
-      }
+  const handleUpdate = useCallback(async (id: string, data: Partial<ScheduledEntry>) => {
+    let docId = 0
+    if (data.professor) {
+       docId = doctors.find(d => d.name === data.professor)?.id || 0
+       if (!docId && data.professor && data.professor !== 'Unassigned') {
+         try {
+           const newDoc = await api.scheduler.createDoctor({ name: data.professor })
+           setDoctors(p => [...p, newDoc])
+           docId = newDoc.id
+         } catch (e) { console.error("Failed making doctor in update") }
+       }
     }
 
     try {
       const updated = await api.scheduler.updateEntry(parseInt(id), {
-        doctor_id: docId || 0,
-        room: room
+        doctor_id: docId,
+        room: data.room,
+        duration_mins: data.durationMins,
+        day: data.day // Support pattern updates
       })
       
-      setEntries(prev => prev.map(e => e.id === id ? {
-        ...e,
-        professor: professor,
-        room: updated.room
-      } : e))
+      setEntries(prev => prev.map(item => item.id === id ? {
+        ...item,
+        professor: data.professor !== undefined ? data.professor : item.professor,
+        room: updated.room,
+        durationMins: updated.duration_mins,
+        day: updated.day
+      } : item))
+      
+      setSelectedEntry(prev => (prev && prev.id === id) ? {
+        ...prev,
+        professor: data.professor !== undefined ? data.professor : prev.professor,
+        room: updated.room,
+        durationMins: updated.duration_mins,
+        day: updated.day
+      } : prev);
     } catch (err: any) {
       setErrorMsg(err.response?.data?.detail || err.message)
     }
-  }, [doctors])
+  }, [doctors, selectedEntry])
 
   const handleRemove = useCallback(async (id: string) => {
     try {
@@ -140,6 +165,12 @@ export function Scheduler() {
       console.error(e)
     }
   }, [selectedEntry])
+
+  const handleExport = useCallback(() => {
+    // Direct browser download from the API endpoint
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    window.open(`${baseUrl}/scheduler/export`, '_blank')
+  }, [])
 
   // Stats
   const totalScheduled = entries.length
@@ -172,7 +203,10 @@ export function Scheduler() {
             ))}
           </div>
 
-          <button className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest px-6 py-3 bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] rounded-lg text-white  shadow-lg shadow-[var(--brand-primary)]/20 active:scale-95">
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest px-6 py-3 bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] rounded-lg text-white  shadow-lg shadow-[var(--brand-primary)]/20 active:scale-95"
+          >
             <Download className="w-4 h-4 text-white" /> Finalize & Export
           </button>
         </div>
@@ -211,10 +245,14 @@ export function Scheduler() {
             <TimetableGrid
               entries={entries}
               selectedCourse={selected}
+              doctors={doctors}
               onAdd={handleAdd}
-              onUpdate={handleUpdate}
-              onRemove={handleRemove}
-              onEntryClick={(e) => setSelectedEntry(e)}
+              onEntryClick={(e) => {
+                setSelectedEntry(e);
+                setIsEditing(false); 
+              }}
+              onDeleteEntry={handleRemove}
+              onUpdateEntry={handleUpdate}
             />
           </div>
         </div>
@@ -240,13 +278,21 @@ export function Scheduler() {
 
               <section className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-main rounded-lg border border-premium shadow-sm">
-                  <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-1">Time Slot</div>
+                  <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-1">Institutional Start</div>
                   <div className="text-xs font-bold text-main">{selectedEntry.day} • {selectedEntry.startTime}</div>
-                  <div className="text-[8px] text-[var(--brand-primary)] font-black uppercase mt-1">({selectedEntry.durationMins} mins)</div>
+                  <div className="text-[8px] text-[var(--brand-primary)] font-black uppercase mt-1">Total: {selectedEntry.durationMins} mins</div>
                 </div>
                 <div className="p-4 bg-main rounded-lg border border-premium shadow-sm">
                   <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-1">Location</div>
-                  <div className="text-xs font-bold text-main">{selectedEntry.room}</div>
+                  {isEditing ? (
+                    <input 
+                      value={editRoom}
+                      onChange={(e) => setEditRoom(e.target.value)}
+                      className="w-full bg-surface border border-premium rounded px-2 py-1 text-xs font-bold text-main mt-1 focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]"
+                    />
+                  ) : (
+                    <div className="text-xs font-bold text-main">{selectedEntry.room}</div>
+                  )}
                 </div>
               </section>
 
@@ -254,14 +300,58 @@ export function Scheduler() {
                 <div className="text-[10px] font-black text-muted uppercase tracking-widest mb-4 border-b border-premium pb-2">Assigned Faculty</div>
                 <div className="flex items-center gap-3 p-4 bg-[var(--brand-faded)] border border-[var(--brand-primary)]/20 rounded-lg">
                   <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white text-[10px] font-bold">
-                    {selectedEntry.professor?.[0] || '?'}
+                    {editProf?.[0] || selectedEntry.professor?.[0] || '?'}
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-main">{selectedEntry.professor || 'No Faculty Assigned'}</div>
-                    <div className="text-[9px] text-[var(--brand-primary)] font-black uppercase tracking-widest mt-0.5">Primary Instructor</div>
+                  <div className="flex-1">
+                    {isEditing ? (
+                      <input 
+                        value={editProf}
+                        onChange={(e) => setEditProf(e.target.value)}
+                        className="w-full bg-surface border border-premium rounded px-2 py-1 text-xs font-bold text-main focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]"
+                        placeholder="Faculty Name..."
+                      />
+                    ) : (
+                      <>
+                        <div className="text-xs font-bold text-main">{selectedEntry.professor || 'No Faculty Assigned'}</div>
+                        <div className="text-[9px] text-[var(--brand-primary)] font-black uppercase tracking-widest mt-0.5">Primary Instructor</div>
+                      </>
+                    )}
                   </div>
                 </div>
               </section>
+
+              <div className="flex gap-3">
+                {isEditing ? (
+                  <>
+                    <button 
+                      onClick={() => {
+                        handleUpdate(selectedEntry.id, { professor: editProf, room: editRoom });
+                        setIsEditing(false);
+                      }}
+                      className="flex-1 py-3 bg-[var(--brand-primary)] text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[var(--brand-hover)] transition-all shadow-lg shadow-[var(--brand-primary)]/20"
+                    >
+                      Apply Changes
+                    </button>
+                    <button 
+                      onClick={() => setIsEditing(false)}
+                      className="px-4 py-3 bg-main border border-premium rounded-lg text-[10px] font-black uppercase tracking-[0.2em] text-muted"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      setEditProf(selectedEntry.professor);
+                      setEditRoom(selectedEntry.room);
+                      setIsEditing(true);
+                    }}
+                    className="flex-1 py-3 bg-surface border border-premium rounded-lg text-[10px] font-black uppercase tracking-[0.2em] text-main hover:bg-main transition-all"
+                  >
+                    Modify Assignment
+                  </button>
+                )}
+              </div>
 
               <button 
                 onClick={() => { handleRemove(selectedEntry.id); setSelectedEntry(null); }}

@@ -1,9 +1,128 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Upload, AlertCircle, RefreshCw, SlidersHorizontal, X } from 'lucide-react'
+import { CheckCircle2, Upload, AlertCircle, RefreshCw, SlidersHorizontal, X, Info } from 'lucide-react'
 import { FailRatioBar } from '@/components/ui/FailRatioBar'
 import { api } from '@/services/api'
 
 type UploadKey = 'courses' | 'offerings' | 'doctors'
+
+interface HelpContent {
+  title: string
+  desc: string
+  example: string
+  structure?: string[]
+}
+
+const HELP_GUIDES: Record<UploadKey, HelpContent> = {
+  courses: {
+    title: 'Course Catalog Format',
+    desc: 'Upload a JSON file containing the official course registry. Supports nested dictionary or list formats.',
+    example: `{
+  "CSC201": {
+    "course_name": "Computer Applications",
+    "prerequisites": ["CSC101"],
+    "study_plan": "both",
+    "type": "core"
+  },
+  "CSC243": { 
+    "course_name": "Introduction to OOP",
+    "prerequisites": ["CSC201"],
+    "study_plan": "fall",
+    "type": "core"
+  }
+}`,
+    structure: ['course_name (string)', 'prerequisites (list)', 'study_plan (string)', 'type (core/elective)']
+  },
+  offerings: {
+    title: 'Historical Offerings Format',
+    desc: 'CSV or XLSX files containing past enrollment data. You can upload the raw institutional grade report or a flat CSV.',
+    example: `year,semester,campus,course_prefix,course_num,total_enrolled,passed_count,failed_count,fail_ratio,is_offered
+2020,Fall,Beirut,BIF,205,34,25,1,0.26,1
+2021,Spring,Byblos,CSC,243,45,40,2,0.15,1`,
+    structure: ['year', 'semester', 'campus', 'course_prefix', 'course_num', 'total_enrolled', 'passed_count']
+  },
+  doctors: {
+    title: 'Faculty / Doctor Records',
+    desc: 'Provide a listing of available instructors and their areas of expertise. Supports bulk spreadsheets and structured JSON.',
+    structure: [
+      'name (string)', 
+      'courses (list of strings)',
+      'availability (list of pattern strings e.g. "MWF 08:00 10:00")',
+      'Note: Missing days = Unconstrained (Available all day)'
+    ],
+    example: `--- JSON FORMAT ---
+{
+  "name": "Dr. Danielle Azar",
+  "courses": ["CSC243", "CSC245"],
+  "availability": [
+    "M 8:00 10:00", 
+    "WF 10:00 15:00", 
+    "T 10:00 14:00", 
+    "R 10:00 16:00"
+  ]
+}
+
+--- CSV FORMAT ---
+name,courses,days,start,end
+"Dr. Azar", "CSC243, CSC245", MWF, 08:00, 10:00
+"Dr. Azar", "CSC243, CSC245", T, 11:00, 15:30`
+  }
+}
+
+function HelpModal({ type, onClose }: { type: UploadKey; onClose: () => void }) {
+  const guide = HELP_GUIDES[type]
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="bg-surface w-full max-w-2xl rounded-xl border border-premium shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden">
+        <div className="p-6 border-b border-premium flex justify-between items-center bg-main/30">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/10 flex items-center justify-center border border-[var(--brand-primary)]/20">
+              <Info className="w-5 h-5 text-[var(--brand-primary)]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-main">{guide.title}</h3>
+              <p className="text-[10px] text-muted uppercase font-black tracking-widest">{type} reference guide</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-main rounded-lg transition-colors text-muted hover:text-main">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+          <div>
+            <h4 className="text-xs font-black text-muted uppercase tracking-widest mb-2">Description</h4>
+            <p className="text-sm text-secondary leading-relaxed">{guide.desc}</p>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-black text-muted uppercase tracking-widest mb-3">Data Structure</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {guide.structure?.map(s => (
+                <div key={s} className="bg-main border border-premium px-3 py-2 rounded text-[11px] font-bold text-secondary">
+                   • {s}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-black text-muted uppercase tracking-widest mb-3">File Example</h4>
+            <pre className="bg-[#0f172a] text-[#94a3b8] p-5 rounded-lg text-xs font-mono overflow-x-auto border border-white/5 leading-normal">
+              {guide.example}
+            </pre>
+          </div>
+        </div>
+
+        <div className="p-6 bg-main/10 border-t border-premium flex justify-end">
+          <button onClick={onClose} className="bg-main border border-premium px-6 py-2 rounded-lg text-xs font-bold text-main hover:bg-surface">
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function ChipGroup({ label, options, value, onChange }: {
   label: string; options: string[]; value: string; onChange: (v: string) => void
@@ -32,8 +151,8 @@ export function DataManagement() {
   const [fetchLoading, setFetchLoading] = useState(true)
   const [records, setRecords] = useState<any[]>([])
   const [showFilters, setShowFilters] = useState(false)
+  const [helpId, setHelpId] = useState<UploadKey | null>(null)
 
-  // Filter state
   const [filterYear, setFilterYear]       = useState('All')
   const [filterSem, setFilterSem]         = useState('All')
   const [filterCampus, setFilterCampus]   = useState('All')
@@ -81,10 +200,9 @@ export function DataManagement() {
   const UPLOAD_ZONES = [
     { key: 'courses' as UploadKey, label: 'Course Catalog (JSON)', desc: 'Contains courses, prerequisites, and study plans', accept: '.json' },
     { key: 'offerings' as UploadKey, label: 'Historical Offerings (CSV/XLSX)', desc: 'Contains past enrollments and failure ratios', accept: '.csv,.xlsx' },
-    { key: 'doctors' as UploadKey, label: 'Faculty/Doctor Records (JSON/Excel)', desc: 'Institutional professor registry and assignments', accept: '.json,.csv,.xlsx' },
+    { key: 'doctors' as UploadKey, label: 'Faculty/Doctor Records (JSON/CSV/XLSX)', desc: 'Institutional professor registry and assignments', accept: '.json,.csv,.xlsx' },
   ]
 
-  // Derive filter options from loaded data
   const years    = ['All', ...Array.from(new Set(records.map(r => String(r.year)))).sort((a,b)=>Number(b)-Number(a))]
   const sems     = ['All', 'Fall', 'Spring', 'Summer']
   const campuses = ['All', ...Array.from(new Set(records.map(r => r.campus))).sort()]
@@ -111,7 +229,8 @@ export function DataManagement() {
 
   return (
     <div className="p-8 space-y-8 animate-fade-in max-w-[1600px] mx-auto">
-      {/* Header */}
+      {helpId && <HelpModal type={helpId} onClose={() => setHelpId(null)} />}
+
       <div className="flex justify-between items-end pb-8 border-b border-premium/50">
         <div>
           <h1 className="text-2xl font-display font-bold text-main tracking-tight leading-tight">Institutional Data Records</h1>
@@ -122,53 +241,60 @@ export function DataManagement() {
         </button>
       </div>
 
-      {/* Upload Zones */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 z-10 relative">
         {UPLOAD_ZONES.map((zone) => {
           const isUploaded = uploaded[zone.key]
           const isDragging = dragging === zone.key
           return (
-            <label key={zone.key}
-              onDragOver={(e) => { e.preventDefault(); setDragging(zone.key) }}
-              onDragLeave={() => setDragging(null)}
-              onDrop={(e) => handleDrop(e, zone.key)}
-              className={`rounded-xl border-2 border-dashed p-8 cursor-pointer block relative overflow-hidden group ${
-                isUploaded ? 'border-[var(--status-success)]/30 bg-[var(--status-success)]/5'
-                : isDragging ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 scale-[1.01]'
-                : 'border-premium bg-surface hover:border-[var(--brand-primary)]/50 hover:bg-main shadow-sm hover:shadow-md'
-              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <input type="file" accept={zone.accept} className="hidden" onChange={(e) => handleFileChange(e, zone.key)} disabled={loading} />
-              {isUploaded ? (
-                <div className="text-center py-6">
-                  <div className="w-14 h-14 bg-[var(--status-success)]/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-[var(--status-success)]/20 shadow-sm">
-                    <CheckCircle2 className="w-7 h-7 text-[var(--status-success)]" />
+            <div key={zone.key} className="relative group">
+               {/* Help Trigger */}
+               <button 
+                onClick={(e) => { e.preventDefault(); setHelpId(zone.key) }}
+                className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-main/50 backdrop-blur-md border border-premium flex items-center justify-center text-muted hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/40 transition-all hover:scale-110 shadow-sm"
+               >
+                 <Info className="w-4 h-4" />
+               </button>
+
+              <label
+                onDragOver={(e) => { e.preventDefault(); setDragging(zone.key) }}
+                onDragLeave={() => setDragging(null)}
+                onDrop={(e) => handleDrop(e, zone.key)}
+                className={`rounded-xl border-2 border-dashed p-8 cursor-pointer block relative overflow-hidden transition-all ${
+                  isUploaded ? 'border-[var(--status-success)]/30 bg-[var(--status-success)]/5'
+                  : isDragging ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 scale-[1.01]'
+                  : 'border-premium bg-surface hover:border-[var(--brand-primary)]/50 hover:bg-main shadow-sm hover:shadow-md'
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <input type="file" accept={zone.accept} className="hidden" onChange={(e) => handleFileChange(e, zone.key)} disabled={loading} />
+                {isUploaded ? (
+                  <div className="text-center py-6">
+                    <div className="w-14 h-14 bg-[var(--status-success)]/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-[var(--status-success)]/20 shadow-sm">
+                      <CheckCircle2 className="w-7 h-7 text-[var(--status-success)]" />
+                    </div>
+                    <p className="text-base font-bold text-[var(--status-success)]">Dataset Synchronized</p>
+                    <p className="text-xs text-[var(--status-success)]/80 mt-1.5 font-medium">{zone.label} successfully internalized</p>
                   </div>
-                  <p className="text-base font-bold text-[var(--status-success)]">Dataset Synchronized</p>
-                  <p className="text-xs text-[var(--status-success)]/80 mt-1.5 font-medium">{zone.label} successfully internalized</p>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <div className="w-14 h-14 bg-main rounded-full flex items-center justify-center mx-auto mb-4 border border-premium group-hover:bg-[var(--brand-faded)] group-hover:border-[var(--brand-primary)]/30 ">
-                    <Upload className="w-6 h-6 text-muted group-hover:text-[var(--brand-primary)] " />
+                ) : (
+                  <div className="text-center py-6">
+                    <div className="w-14 h-14 bg-main rounded-full flex items-center justify-center mx-auto mb-4 border border-premium group-hover:bg-[var(--brand-faded)] group-hover:border-[var(--brand-primary)]/30 ">
+                      <Upload className="w-6 h-6 text-muted group-hover:text-[var(--brand-primary)] " />
+                    </div>
+                    <p className="text-base font-bold text-main group-hover:text-[var(--brand-primary)] ">{zone.label}</p>
+                    <p className="text-xs text-muted mt-1.5 mb-6 font-medium tracking-wide">{zone.desc}</p>
+                    <div className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-white text-[11px] px-6 py-2 rounded-md font-bold hover:bg-[var(--brand-hover)] shadow-[var(--brand-primary)]/20 group-hover:shadow-[var(--brand-primary)]/40">
+                      Import File
+                    </div>
                   </div>
-                  <p className="text-base font-bold text-main group-hover:text-[var(--brand-primary)] ">{zone.label}</p>
-                  <p className="text-xs text-muted mt-1.5 mb-6 font-medium tracking-wide">{zone.desc}</p>
-                  <div className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-white text-[11px] px-6 py-2 rounded-md font-bold hover:bg-[var(--brand-hover)] shadow-[var(--brand-primary)]/20 group-hover:shadow-[var(--brand-primary)]/40">
-                    Import File
-                  </div>
-                </div>
-              )}
-            </label>
+                )}
+              </label>
+            </div>
           )
         })}
       </div>
 
-      {/* Data Preview Table */}
       <div className="bg-surface rounded-xl border border-premium shadow-sm overflow-hidden mb-12 relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-[var(--brand-primary)] z-20" />
 
-        {/* Table header + filter toggle */}
         <div className="px-8 py-6 border-b border-premium bg-main/50">
           <div className="flex items-center justify-between">
             <div>
@@ -200,7 +326,6 @@ export function DataManagement() {
             </div>
           </div>
 
-          {/* Collapsible filter panel */}
           {showFilters && (
             <div className="mt-6 pt-6 border-t border-slate-200/60 space-y-5 animate-in fade-in slide-in-from-top-2 ">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
@@ -209,7 +334,6 @@ export function DataManagement() {
                 <ChipGroup label="Campus Site" options={campuses} value={filterCampus} onChange={setFilterCampus} />
                 <ChipGroup label="Department"   options={prefixes} value={filterPrefix} onChange={setFilterPrefix} />
                 <ChipGroup label="Risk Index" options={['All', 'Low', 'Mid', 'High']} value={filterRatio} onChange={setFilterRatio} />
-                {/* Row limit */}
                 <div className="flex items-center gap-4">
                   <span className="text-[10px] font-bold text-muted uppercase tracking-widest whitespace-nowrap">Page Limit</span>
                   <input
@@ -223,7 +347,6 @@ export function DataManagement() {
           )}
         </div>
 
-        {/* Table body */}
         <div className="overflow-x-auto max-h-[600px] overflow-y-auto institutional-scrollbar">
           {fetchLoading ? (
             <div className="p-20 text-center text-slate-400 font-medium">Internalizing academic records...</div>
@@ -261,4 +384,3 @@ export function DataManagement() {
     </div>
   )
 }
-

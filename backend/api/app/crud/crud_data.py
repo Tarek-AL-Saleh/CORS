@@ -58,15 +58,61 @@ def get_doctor_by_name(db: Session, name: str):
     return db.query(models.Doctor).filter(models.Doctor.name == name).first()
 
 def upsert_doctor(db: Session, doc_data: dict):
+    from fastapi import HTTPException
     name = doc_data.get("name", "Unknown").strip()
     if not name: return None
     
+    # 1. Validation for Day Uniqueness
+    availability_list = doc_data.get("availability", [])
+    seen_days = set()
+    parsed_slots = []
+    
+    for slot_str in availability_list:
+        parts = slot_str.split()
+        if len(parts) < 3: continue
+        
+        days_pattern = parts[0].upper()
+        start_time = parts[1]
+        end_time = parts[2]
+        
+        # Check for duplicate day characters
+        for char in days_pattern:
+            if char in seen_days:
+                raise HTTPException(status_code=400, detail=f"Data inconsistency: Day '{char}' is assigned to multiple availability slots for {name}.")
+            seen_days.add(char)
+        
+        parsed_slots.append({
+            "days": days_pattern,
+            "start": start_time,
+            "end": end_time
+        })
+
+    # 2. Sync Doctor Record
     db_doc = db.query(models.Doctor).filter(models.Doctor.name == name).first()
     if not db_doc:
-        db_doc = models.Doctor(name=name, department=doc_data.get("department"))
+        db_doc = models.Doctor(
+            name=name, 
+            allowed_courses=json.dumps(doc_data.get("courses", [])) if doc_data.get("courses") else None
+        )
         db.add(db_doc)
     else:
-        db_doc.department = doc_data.get("department", db_doc.department)
+        if "courses" in doc_data:
+            db_doc.allowed_courses = json.dumps(doc_data["courses"])
+    
+    db.commit()
+    db.refresh(db_doc)
+
+    # 3. Sync Availability (Wipe and Replace)
+    db.query(models.DoctorAvailability).filter(models.DoctorAvailability.doctor_id == db_doc.id).delete()
+    
+    for slot in parsed_slots:
+        db_availability = models.DoctorAvailability(
+            doctor_id=db_doc.id,
+            days=slot["days"],
+            start=slot["start"],
+            end=slot["end"]
+        )
+        db.add(db_availability)
     
     db.commit()
     db.refresh(db_doc)

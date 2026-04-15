@@ -109,12 +109,18 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
             confidence = float(probas[0].max())
             offer_score = float(probas[0][1]) * 100  # Prob of class 1
 
+            # Apply level multiplier to the recursive dependency yield
+            # (Higher level courses are closer to graduation and thus more critical)
+            yield_val = vec["bottleneck_score"]
+            if c.course_level and c.course_level >= 400:
+                yield_val = int(yield_val * 1.5)
+
             raw_predictions.append({
                 "course_code": c.code,
                 "prefix": c.prefix.upper(),
                 "course_type": (c.type or "").lower(),
                 "latent_demand": effective_latent,
-                "bottleneck_score": vec["bottleneck_score"],
+                "bottleneck_score": yield_val,
                 "offer_score": offer_score,
                 "confidence": confidence,
                 "offer": False  # determined below by slot selection

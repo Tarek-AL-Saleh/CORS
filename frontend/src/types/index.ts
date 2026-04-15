@@ -91,7 +91,7 @@ export interface ScheduledEntry {
   courseCode: string
   courseName: string
   dept: string
-  day: WeekDay
+  day: string
   startTime: string // "HH:MM" format
   durationMins: number
   professor: string
@@ -102,4 +102,11 @@ export interface ScheduledEntry {
 export interface PlacementTarget {
   day: WeekDay
   startTime: string // "HH:MM"
+  editEntry?: ScheduledEntry
+}
+
+export interface DoctorResponse {
+    id: number
+    name: string
+    allowed_courses?: string
 }
