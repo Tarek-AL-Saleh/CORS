@@ -183,31 +183,75 @@ async def upload_offerings(file: UploadFile = File(...), db: Session = Depends(g
 
 @router.post("/upload/doctors")
 async def upload_doctors(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    if not file.filename.endswith('.json'):
-        raise HTTPException(status_code=400, detail="Only JSON files are supported")
+    if not (file.filename.endswith('.json') or file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
+        raise HTTPException(status_code=400, detail="Must be a JSON, CSV, or XLSX file")
     
     try:
-        # 1. Read and parse the file content
-        contents = await file.read()
-        doctors_list = json.loads(contents)
+        doctors_to_process = []
+        
+        if file.filename.endswith('.json'):
+            content = await file.read()
+            data = json.loads(content)
+            if isinstance(data, list):
+                doctors_to_process = data
+            elif isinstance(data, dict):
+                # Check for a "doctors" or "faculty" key
+                if "doctors" in data: doctors_to_process = data["doctors"]
+                elif "faculty" in data: doctors_to_process = data["faculty"]
+                else:
+                    # Treat dict as a collection of name: metadata
+                    for name, meta in data.items():
+                        if isinstance(meta, dict):
+                            meta["name"] = name
+                            doctors_to_process.append(meta)
+                        else:
+                            doctors_to_process.append({"name": name})
+        else:
+            # Excel / CSV
+            import os, tempfile
+            fd, temp_file_path = tempfile.mkstemp(suffix=".xlsx" if file.filename.endswith('.xlsx') else ".csv")
+            with os.fdopen(fd, 'wb') as f:
+                f.write(file.file.read())
+            
+            if file.filename.endswith('.csv'):
+                df = pd.read_csv(temp_file_path)
+            else:
+                df = pd.read_excel(temp_file_path)
+            
+            try: os.remove(temp_file_path)
+            except: pass
+            
+            df.columns = [str(c).strip().lower() for c in df.columns]
+            for _, row in df.iterrows():
+                name = str(row.get("name", row.get("doctor_name", row.get("professor", "")))).strip()
+                course_raw = str(row.get("allowed_courses", row.get("courses", ""))).strip()
+                days = str(row.get("days", row.get("day", ""))).strip()
+                start = str(row.get("start", row.get("start_time", ""))).strip()
+                end = str(row.get("end", row.get("end_time", ""))).strip()
+                
+                courses = []
+                if course_raw and course_raw.lower() != 'nan':
+                    courses = [c.strip().upper() for c in course_raw.split(',') if c.strip()]
+                
+                availability = []
+                if days and start and end:
+                    availability = [f"{days} {start} {end}"]
 
-        if not isinstance(doctors_list, list):
-            raise HTTPException(status_code=400, detail="JSON must be a list of doctor objects")
+                if name:
+                    doctors_to_process.append({
+                        "name": name, 
+                        "courses": courses,
+                        "availability": availability
+                    })
 
         count = 0
-        for doc_data in doctors_list:
-            # 2. This calls your existing logic for the Doctor and Availability tables
-            db_doc = crud_data.upsert_doctor(db, doc_data)
-            if db_doc:
-                count += 1
-        
-        # 3. Save all changes to both tables
-        db.commit()
-        
+        for doc in doctors_to_process:
+            if not isinstance(doc, dict): continue
+            db_doc = crud_data.upsert_doctor(db, doc)
+            if db_doc: count += 1
+            
+        crud_data.create_audit_log(db, "doctors", "UPLOAD", f"Uploaded faculty: {count} records processed.")
         return {"status": "success", "processed": count}
 
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON format in file")
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
