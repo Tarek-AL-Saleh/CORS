@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { Check, X, Clock, GraduationCap, Beaker, Search, User, ChevronDown } from 'lucide-react'
 import type { CatalogCourse, ScheduledEntry, WeekDay, DoctorResponse as Doctor } from '@/types'
-import { DEPT_CHIP_COLORS } from '@/data/mockData'
+import { DEPT_CHIP_COLORS } from '@/data/data'
 
 const ALL_DAYS: WeekDay[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const DAY_ABBR: Record<WeekDay, string> = {

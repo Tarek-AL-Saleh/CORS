@@ -4,7 +4,7 @@ import { CoursePanel } from '@/components/scheduler/CoursePanel'
 import { TimetableGrid } from '@/components/scheduler/TimetableGrid'
 import type { CatalogCourse, ScheduledEntry, WeekDay } from '@/types'
 import { api } from '@/services/api'
-import { DEPT_CHIP_COLORS } from '@/data/mockData'
+import { DEPT_CHIP_COLORS } from '@/data/data'
 
 export function Scheduler() {
   const [selected, setSelected] = useState<CatalogCourse | null>(null)

@@ -1,6 +1,6 @@
 import { Search, Sparkles, BookOpen, X, Loader2 } from 'lucide-react'
 import { DemandBadge } from '@/components/ui/DemandBadge'
-import { DEPT_CHIP_COLORS } from '@/data/mockData'
+import { DEPT_CHIP_COLORS } from '@/data/data'
 import type { CatalogCourse } from '@/types'
 import { api } from '@/services/api'
 import { useEffect, useState } from 'react'
