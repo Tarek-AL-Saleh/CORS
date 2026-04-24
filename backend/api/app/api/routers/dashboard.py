@@ -27,9 +27,16 @@ def get_metrics(db: Session = Depends(get_db)):
             models.PredictionEntry.run_id == latest_run.id,
             models.PredictionEntry.offer == True
         ).count()
-        avg_confidence = db.query(func.avg(models.PredictionEntry.confidence)).filter(
-            models.PredictionEntry.run_id == latest_run.id
-        ).scalar() or 0.0
+        
+        # Load the formal ROC-AUC metric for the evaluated campus model
+        try:
+            import os
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+            auc_file = os.path.join(base_dir, 'ai-engine', 'models', f'auc_{latest_run.campus.lower()}.txt')
+            with open(auc_file, 'r') as f:
+                avg_confidence = float(f.read().strip())
+        except Exception:
+            avg_confidence = 0.0
 
     return {
         "total_courses": total_courses,

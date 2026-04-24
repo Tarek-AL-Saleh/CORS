@@ -107,19 +107,25 @@ class FeatureTransformer:
 
     def _gap_since_offered(self, course_code: str, campus: str, current_year: int, current_sem: str) -> int:
         if self.off_df.empty: return 99
+        
+        order = {"Fall": 3, "Summer": 2, "Spring": 1}
+        current_sem_order = order.get(current_sem, 3)
+        
         mask = (self.off_df['course_code'] == course_code) & \
                (self.off_df['campus'] == campus) & \
-               (self.off_df['is_offered'] == True)
+               (self.off_df['is_offered'] == True) & \
+               ((self.off_df['year'] < current_year) | 
+                ((self.off_df['year'] == current_year) & (self.off_df['semester'].map(order) < current_sem_order)))
+               
         offered = self.off_df[mask]
         if offered.empty: return 99
         
-        # Sort by year desc
-        s = offered.sort_values(by=['year'], ascending=False).iloc[0]
-        # Rough calculation in terms
+        # Sort by year desc, then term desc
+        s = offered.assign(sem_order=offered['semester'].map(order)).sort_values(by=['year', 'sem_order'], ascending=[False, False]).iloc[0]
+        
         gap_years = current_year - s['year']
         gap_terms = gap_years * 3 
-        order = {"Fall": 3, "Summer": 2, "Spring": 1}
-        gap_terms += (order.get(current_sem, 3) - order.get(s['semester'], 3))
+        gap_terms += (current_sem_order - order.get(s['semester'], 3))
         return max(1, gap_terms)
 
     def _calc_bottleneck_score(self, course_code: str) -> int:

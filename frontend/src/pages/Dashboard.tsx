@@ -62,19 +62,19 @@ export function Dashboard({ onNavigate }: { onNavigate?: (p: PageId) => void }) 
           description="Total processed enrollment records across all departments."
         />
         <KPICard
-          title="Model Accuracy"
+          title="Model ROC-AUC"
           value={metrics.latest_run_id ? `${metrics.average_model_confidence.toFixed(1)}%` : "N/A"}
-          trend={metrics.latest_run_id ? "Latest" : "Pending"}
+          trend={metrics.latest_run_id ? "Global" : "Pending"}
           icon={<BrainCircuit />}
-          description={metrics.latest_run_id ? `Predictive confidence score from run #${metrics.latest_run_id}.` : 'Awaiting first analysis run.'}
+          description={metrics.latest_run_id ? `Area Under ROC Curve indicating the model's structural discrimination power.` : 'Awaiting first analysis run.'}
         />
         <KPICard
-          title="Institutional Risk"
+          title="Average Failure Rate"
           value={`${metrics.average_fail_ratio.toFixed(1)}%`}
           trend="-0.5%"
           icon={<AlertTriangle />}
           trendUp={false}
-          description="Collective average of high-risk course failure rates."
+          description="Historical percentage of failing grades across all recorded course offerings."
         />
       </div>
 

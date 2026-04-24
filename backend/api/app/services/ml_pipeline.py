@@ -131,15 +131,16 @@ class MLPipeline:
         )
         xgb_model = XGBClassifier(
             n_estimators=100, 
-            max_depth=10, 
-            learning_rate=0.2, 
+            max_depth=6, 
+            learning_rate=0.1, 
             random_state=42, 
             eval_metric='logloss'
         )
         
         ensemble = VotingClassifier(
             estimators=[('rf', rf), ('xgb', xgb_model)],
-            voting='soft'
+            voting='soft',
+            weights=[3, 1]
         )
         ensemble.fit(X, y)
 
@@ -158,6 +159,11 @@ class MLPipeline:
             best_threshold = float(thresholds[best_idx_fbeta])
         else:
             best_threshold = 0.4 # Reasonable heuristic fallback
+
+        from sklearn.metrics import roc_auc_score
+        auc_score = roc_auc_score(y, y_probs)
+        auc_path = MODEL_DIR / f"auc_{campus.lower()}.txt"
+        auc_path.write_text(str(auc_score))
 
         model_path = MODEL_DIR / f"ensemble_model_{campus.lower()}.pkl"
         joblib.dump(ensemble, model_path)
