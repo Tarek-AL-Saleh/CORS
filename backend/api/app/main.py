@@ -13,6 +13,13 @@ async def lifespan(app: FastAPI):
     from app.db.database import SessionLocal
     from app.core.security import get_password_hash
     
+    import os
+    # Emergency Reset Logic
+    if os.getenv("FORCE_DB_RESET") == "true":
+        print("!!! FORCE_DB_RESET detected. Wiping all tables...")
+        models.Base.metadata.drop_all(bind=engine)
+        print("Database wiped.")
+
     # Ensure tables are created
     models.Base.metadata.create_all(bind=engine)
     
