@@ -28,7 +28,7 @@ from app.db import models
 from app.services.ml_feature_transformer import FeatureTransformer
 
 MODEL_DIR = Path(__file__).resolve().parents[3] / "ai-engine" / "models"
-os.makedirs(MODEL_DIR, exist_ok=True)
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
 THRESHOLDS_PATH = MODEL_DIR / "thresholds.json"
 
 class MLPipeline:

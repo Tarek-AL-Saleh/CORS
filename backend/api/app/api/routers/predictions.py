@@ -116,17 +116,17 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
                 yield_val = int(yield_val * 1.5)
 
             # ("Quota" handles prioritizing over-saturated pools if enabled)
-            if is_recommended_by_ml:
-                raw_predictions.append({
-                    "course_code": c.code,
-                    "prefix": c.prefix.upper(),
-                    "course_type": (c.type or "").lower(),
-                    "latent_demand": effective_latent,
-                    "bottleneck_score": yield_val,
-                    "offer_score": offer_score,
-                    "confidence": confidence,
-                    "offer": True if not req.use_quotas else False
-                })
+            raw_predictions.append({
+                "course_code": c.code,
+                "prefix": c.prefix.upper(),
+                "course_type": (c.type or "").lower(),
+                "latent_demand": effective_latent,
+                "bottleneck_score": yield_val,
+                "offer_score": offer_score,
+                "confidence": confidence,
+                # Recommended if it passes threshold AND we aren't using the Quota system
+                "offer": is_recommended_by_ml if not req.use_quotas else False
+            })
         except FileNotFoundError as e:
             raise HTTPException(status_code=500, detail=str(e))
         except Exception as e:
