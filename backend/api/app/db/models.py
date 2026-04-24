@@ -15,6 +15,7 @@ class Course(Base):
     is_math = Column(Boolean, default=False)
     is_core = Column(Boolean, default=False)
     course_level = Column(Integer, default=1)
+    aliases = Column(Text, nullable=True)  # JSON list of original course codes e.g., ["CSC243", "BIF243"]
 
 class CourseOffering(Base):
     __tablename__ = 'course_offerings'

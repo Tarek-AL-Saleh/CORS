@@ -4,11 +4,31 @@ from app.db import models
 from app.schemas import domain
 from typing import List
 
+def resolve_course_code(db: Session, course_code: str):
+    # Try exact match first
+    res = db.query(models.Course).filter(models.Course.code == course_code).first()
+    if res:
+        return course_code
+    
+    # Try alias match
+    # Since aliases is a JSON string, we can use ILIKE for a simple search or query all and check
+    # For performance on small-medium datasets, we'll query courses with aliases
+    courses_with_aliases = db.query(models.Course).filter(models.Course.aliases.isnot(None)).all()
+    for c in courses_with_aliases:
+        try:
+            aliases = json.loads(c.aliases)
+            if course_code in aliases:
+                return c.code
+        except:
+            continue
+    return course_code
+
 def get_db_course(db: Session, course_code: str):
     return db.query(models.Course).filter(models.Course.code == course_code).first()
 
 def upsert_course(db: Session, course: domain.CourseBase):
-    db_course = get_db_course(db, course.code)
+    resolved_code = resolve_course_code(db, course.code)
+    db_course = get_db_course(db, resolved_code)
     if db_course:
         db_course.name = course.name
         db_course.prefix = course.prefix
@@ -35,15 +55,47 @@ def get_offering(db: Session, year: int, semester: str, campus: str, course_code
     ).first()
 
 def upsert_offering(db: Session, offering: domain.CourseOfferingBase):
-    db_off = get_offering(db, offering.year, offering.semester, offering.campus, offering.course_code)
+    resolved_code = resolve_course_code(db, offering.course_code)
+    db_off = get_offering(db, offering.year, offering.semester, offering.campus, resolved_code)
+    
     if db_off:
-        db_off.total_enrolled = offering.total_enrolled
-        db_off.passed_count = offering.passed_count
-        db_off.failed_count = offering.failed_count
-        db_off.fail_ratio = offering.fail_ratio
-        db_off.is_offered = offering.is_offered
+        # If we are upserting and it's a unified code, we might want to ADD to it 
+        # but the current architecture of 'upsert' usually implies 'overwrite'
+        # To be safe for cross-listed courses being uploaded separately, we should probably merge.
+        # However, if the upload script itself does grouping, overwrite is fine.
+        # The upload script in data_management.py iterates row by row.
+        # If CSC243 and BIF243 are in the same file, row 1 (CSC243) will set values.
+        # Row 2 (BIF243) will then OVERWRITE them if we don't ADD.
+        
+        # Check if it is a unified course (contains /)
+        if "/" in resolved_code:
+            db_off.total_enrolled += offering.total_enrolled
+            db_off.passed_count += offering.passed_count
+            db_off.failed_count += offering.failed_count
+            
+            # Recalculate fail ratio
+            if db_off.total_enrolled > 0:
+                db_off.fail_ratio = float(db_off.failed_count / db_off.total_enrolled)
+            else:
+                db_off.fail_ratio = 0.0
+            
+            db_off.is_offered = db_off.is_offered or offering.is_offered
+        else:
+            db_off.total_enrolled = offering.total_enrolled
+            db_off.passed_count = offering.passed_count
+            db_off.failed_count = offering.failed_count
+            db_off.is_offered = offering.is_offered
+            
+            # Standardize fail ratio for standalone courses too
+            if db_off.total_enrolled > 0:
+                db_off.fail_ratio = float(db_off.failed_count / db_off.total_enrolled)
+            else:
+                db_off.fail_ratio = 0.0
     else:
-        db_off = models.CourseOffering(**offering.model_dump())
+        # Ensure the code used is the resolved one
+        off_data = offering.model_dump()
+        off_data["course_code"] = resolved_code
+        db_off = models.CourseOffering(**off_data)
         db.add(db_off)
     db.commit()
     return db_off

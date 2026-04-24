@@ -359,7 +359,7 @@ export function DataManagement() {
             <table className="w-full text-sm border-collapse">
               <thead className="sticky top-0 bg-surface shadow-sm z-10">
                 <tr>
-                  {['Year', 'Semester', 'Campus', 'Course Identifier', 'Pass Metric', 'Attrition Metric', 'Status'].map((h) => (
+                  {['Year', 'Semester', 'Campus', 'Course Identifier', 'Students Passed', 'Students Failed', 'Failure Rate'].map((h) => (
                     <th key={h} className="px-8 py-4 text-left text-[10px] font-bold text-muted uppercase tracking-[0.15em] border-b border-premium">{h}</th>
                   ))}
                 </tr>

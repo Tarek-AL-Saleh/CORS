@@ -152,8 +152,10 @@ async def upload_offerings(file: UploadFile = File(...), db: Session = Depends(g
             failed = int(row.get("failed_count", row.get("failed", row.get("fail", 0))))
             fail_ratio = float(row.get("fail_ratio", row.get("failure_rate", 0.0)))
             
-            if enrolled > 0 and fail_ratio == 0:
+            if enrolled > 0:
                 fail_ratio = float(failed / enrolled)
+            else:
+                fail_ratio = 0.0
             
             is_off = bool(row.get("is_offered", row.get("is offered", row.get("offered", True))))
 
