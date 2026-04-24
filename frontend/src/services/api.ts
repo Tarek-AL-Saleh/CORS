@@ -1,9 +1,12 @@
 import axios from 'axios';
 
+// When deploying on Vercel, we will provide the Render backend URL inside Vercel's Environment Variables panel.
+// If VITE_API_URL is empty (e.g., when running locally), it falls back to localhost.
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const apiClient = axios.create({
   baseURL: API_URL,
+
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
