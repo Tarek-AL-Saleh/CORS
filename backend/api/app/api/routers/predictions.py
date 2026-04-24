@@ -165,9 +165,10 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
     # 4. Save to DB
     run = models.PredictionRun(
         run_name=req.run_name,
+        campus=req.target_campus, # Explicitly save campus now
         target_year=req.target_year,
         target_semester=req.target_semester,
-        model_version="backend_model_v1"
+        model_version="backend_model_v2" # Transition to dual-model versioning
     )
     db.add(run)
     db.flush()
@@ -192,5 +193,8 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
     return run
 
 @router.get("/runs", response_model=List[domain.PredictionRunResponse])
-def get_prediction_runs(db: Session = Depends(get_db)):
-    return db.query(models.PredictionRun).order_by(models.PredictionRun.created_at.desc()).all()
+def get_prediction_runs(campus: str = None, db: Session = Depends(get_db)):
+    query = db.query(models.PredictionRun)
+    if campus:
+        query = query.filter(models.PredictionRun.campus == campus)
+    return query.order_by(models.PredictionRun.created_at.desc()).all()

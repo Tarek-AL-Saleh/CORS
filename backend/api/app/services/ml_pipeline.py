@@ -182,9 +182,12 @@ class MLPipeline:
         with open(THRESHOLDS_PATH, "w") as f:
             json.dump(threshold_data, f, indent=4)
 
+        total_records = self.db.query(models.TrainingRecord).count()
+
         return {
             "status": "success",
             "message": "Ensemble models for both Beirut and Byblos trained successfully.",
+            "samples_trained": total_records,
             "thresholds": threshold_data
         }
 

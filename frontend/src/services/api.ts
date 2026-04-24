@@ -49,7 +49,7 @@ export const api = {
     nextTerm: () => apiClient.get('/predict/next-term').then(res => res.data),
     bulkPredict: (data: { run_name: string, target_year: number, target_semester: string, target_campus: string, new_enrollees: number, use_quotas?: boolean, slots: { csc_core: number, csc_elective: number, bif_core: number, bif_elective: number, mth: number, sta: number } }) => 
       apiClient.post('/predict/bulk', data).then(res => res.data),
-    getRuns: () => apiClient.get('/predict/runs').then(res => res.data)
+    getRuns: (campus?: string) => apiClient.get('/predict/runs', { params: { campus } }).then(res => res.data)
   },
   scheduler: {
     getSchedule: () => apiClient.get('/scheduler/').then(res => res.data),

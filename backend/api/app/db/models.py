@@ -42,6 +42,7 @@ class PredictionRun(Base):
     __tablename__ = 'prediction_runs'
     id = Column(Integer, primary_key=True, index=True)
     run_name = Column(String, nullable=False)
+    campus = Column(String, nullable=True) # Added for filtering past runs
     target_year = Column(Integer, nullable=False)
     target_semester = Column(String, nullable=False)
     model_version = Column(String, nullable=False)

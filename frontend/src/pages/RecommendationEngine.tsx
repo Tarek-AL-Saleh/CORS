@@ -148,12 +148,14 @@ export function RecommendationEngine() {
       setCourseTypeMap(map);
     }).catch(() => {});
 
-    api.predict.getRuns().then((runs: any[]) => {
+    api.predict.getRuns(campus).then((runs: any[]) => {
       if (runs && runs.length > 0) {
         setEntries([...runs[0].entries].sort((a: any, b: any) => b.offer_score - a.offer_score));
+      } else {
+        setEntries([]);
       }
     }).catch(() => {});
-  }, []);
+  }, [campus]);
 
   const runTraining = async () => {
     setTrainStatus("training");
