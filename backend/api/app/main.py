@@ -28,6 +28,10 @@ async def lifespan(app: FastAPI):
     
     db = SessionLocal()
     try:
+        # 0. Automatic Structural Migrations (Cross-listing unification)
+        from app.services.migration_service import run_course_unification
+        run_course_unification(db)
+
         # 1. Bootstrapping Admin User
         user = db.query(models.User).filter(models.User.username == "admin").first()
         if not user:
