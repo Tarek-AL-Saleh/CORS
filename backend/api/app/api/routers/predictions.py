@@ -107,9 +107,13 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
             
             # The exact F1.5-Score Threshold classification from the model (1 or 0)
             is_recommended_by_ml = bool(preds[0])
-            
-            confidence = float(probas[0].max())
-            offer_score = float(probas[0][1]) * 100  # Prob of class 1
+
+            # BOTH must use probas[0][1] = probability of class 1 (being offered)
+            # Using .max() was wrong: for non-recommended courses, .max() returns
+            # class 0's probability, making confidence = 1 - offer_score
+            prob_offered = float(probas[0][1])
+            offer_score = prob_offered * 100
+            confidence = prob_offered
 
             yield_val = vec["bottleneck_score"]
             if c.course_level and c.course_level >= 400:

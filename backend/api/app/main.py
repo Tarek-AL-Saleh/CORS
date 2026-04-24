@@ -27,6 +27,7 @@ async def lifespan(app: FastAPI):
     
     db = SessionLocal()
     try:
+        # 1. Bootstrapping Admin User
         user = db.query(models.User).filter(models.User.username == "admin").first()
         if not user:
             new_admin = models.User(
@@ -37,6 +38,18 @@ async def lifespan(app: FastAPI):
             )
             db.add(new_admin)
             db.commit()
+
+        # 2. Auto-training if models are missing (for Ephemeral Filesystems like Render)
+        from app.services.ml_pipeline import MLPipeline, MODEL_DIR
+        import os
+        model_beirut = MODEL_DIR / "ensemble_model_beirut.pkl"
+        model_byblos = MODEL_DIR / "ensemble_model_byblos.pkl"
+        if not os.path.exists(model_beirut) or not os.path.exists(model_byblos):
+            print("Model files missing (Post-Deployment). Auto-training starting...")
+            pipeline = MLPipeline(db)
+            pipeline.train_and_save()
+            print("Startup Auto-training complete.")
+
     except Exception as e:
         print(f"Startup bootstrapping error: {e}")
     finally:
