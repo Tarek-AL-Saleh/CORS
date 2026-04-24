@@ -36,12 +36,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CORS Capstone API", version="1.0.0", lifespan=lifespan)
 
+import os
+
+# We read FRONTEND_URL if provided, else we allow vercel apps broadly via regex.
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        frontend_url,
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
