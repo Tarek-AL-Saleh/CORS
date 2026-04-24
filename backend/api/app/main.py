@@ -16,6 +16,15 @@ async def lifespan(app: FastAPI):
     # Ensure tables are created
     models.Base.metadata.create_all(bind=engine)
     
+    # Manual migration for existing tables (ensure campus column exists)
+    from sqlalchemy import text
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE prediction_runs ADD COLUMN IF NOT EXISTS campus VARCHAR;"))
+            conn.commit()
+    except Exception as e:
+        print(f"Schema migration warning: {e}")
+    
     db = SessionLocal()
     try:
         user = db.query(models.User).filter(models.User.username == "admin").first()
