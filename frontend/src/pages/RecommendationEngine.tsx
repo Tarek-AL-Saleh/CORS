@@ -114,6 +114,8 @@ export function RecommendationEngine() {
   const setSlot = (key: keyof typeof slots, val: string) =>
     setSlots((prev) => ({ ...prev, [key]: parseInt(val) || 0 }));
 
+  const [useQuotas, setUseQuotas] = useState(false);
+
   // Term
   const [nextTerm, setNextTerm] = useState<{ year: number; semester: string } | null>(null);
   const [nextTermLoading, setNextTermLoading] = useState(true);
@@ -174,6 +176,7 @@ export function RecommendationEngine() {
         target_semester: nextTerm.semester,
         target_campus: campus,
         new_enrollees: parseInt(newEnrollees) || 0,
+        use_quotas: useQuotas,
         slots,
       });
       setEntries([...res.entries].sort((a: any, b: any) => b.offer_score - a.offer_score));
@@ -282,28 +285,29 @@ export function RecommendationEngine() {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-premium" />
-
-        {/* Row 2: Slot quotas + Run button */}
-        <div className="flex gap-8 items-end flex-wrap">
-          <div className="flex-1">
-            <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] mb-4">Capacity Quotas by Category</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              {SLOT_DEFS.map(({ key, label }) => (
-                <div key={key} className="flex flex-col gap-2">
-                  <span className="text-[9px] font-bold text-muted uppercase tracking-widest leading-tight">{label}</span>
-                  <input
-                    type="number" min="0" value={slots[key]}
-                    onChange={(e) => setSlot(key, e.target.value)}
-                    className="w-full bg-surface border border-premium rounded-lg px-2 py-2.5 text-sm font-bold text-[var(--brand-primary)] text-center focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] shadow-sm "
-                  />
-                </div>
-              ))}
+        {/* Divider with Toggle Button */}
+        <div className="flex items-center justify-between pt-6 mt-6 border-t border-premium">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setUseQuotas(!useQuotas)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+                useQuotas ? "bg-[var(--brand-primary)]" : "bg-main border border-premium"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  useQuotas ? "translate-x-1.5" : "-translate-x-1.5 bg-slate-400"
+                }`}
+              />
+            </button>
+            <div>
+              <p className="text-[11px] font-bold text-main uppercase tracking-widest">Strict Capacity Quotas</p>
+              <p className="text-[10px] text-muted">Constrain ML predictions to fixed department slot limits.</p>
             </div>
           </div>
-
-          <div className="flex-none self-end pb-0.5">
+          
+          {/* Main Execution Button */}
+          <div className="flex-none pb-0.5">
             <button
               onClick={runAnalysis}
               disabled={loading || nextTermLoading}
@@ -314,6 +318,26 @@ export function RecommendationEngine() {
             </button>
           </div>
         </div>
+
+        {/* Row 2: Slot quotas (Conditional) */}
+        {useQuotas && (
+          <div className="flex gap-8 items-end flex-wrap animate-in fade-in slide-in-from-top-2">
+            <div className="flex-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                {SLOT_DEFS.map(({ key, label }) => (
+                  <div key={key} className="flex flex-col gap-2">
+                    <span className="text-[9px] font-bold text-muted uppercase tracking-widest leading-tight">{label}</span>
+                    <input
+                      type="number" min="0" value={slots[key]}
+                      onChange={(e) => setSlot(key, e.target.value)}
+                      className="w-full bg-surface border border-premium rounded-lg px-2 py-2.5 text-sm font-bold text-[var(--brand-primary)] text-center focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] shadow-sm "
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Results Card ── */}

@@ -158,8 +158,6 @@ class FeatureTransformer:
             "semester_Fall": 1 if semester == "Fall" else 0,
             "semester_Spring": 1 if semester == "Spring" else 0,
             "semester_Summer": 1 if semester == "Summer" else 0,
-            "campus_Beirut": 1 if campus == "Beirut" else 0,
-            "campus_Byblos": 1 if campus == "Byblos" else 0
         }
 
     def predict_payload(self, course_code: str, year: int, semester: str, campus: str, new_enrollees: int) -> list:
@@ -169,7 +167,6 @@ class FeatureTransformer:
             "year", "is_core", "is_math", "avg_fail_ratio_3y", "recent_fail_count",
             "is_offered_last_year", "latent_demand_count", "bottleneck_score",
             "plan_alignment_score", "course_level", "gap_since_last_offered",
-            "semester_Fall", "semester_Spring", "semester_Summer", 
-            "campus_Beirut", "campus_Byblos"
+            "semester_Fall", "semester_Spring", "semester_Summer"
         ]
         return [float(vec[k]) for k in keys]

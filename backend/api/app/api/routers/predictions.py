@@ -27,6 +27,7 @@ class BulkPredictRequest(BaseModel):
     target_semester: str
     target_campus: str
     new_enrollees: int = 0
+    use_quotas: bool = False  # Bypasses the quota system if False
     slots: SlotConfig = SlotConfig()
 
 @router.get("/next-term")
@@ -88,14 +89,10 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
             feats = pipeline.ft.predict_payload(
                 c.code, req.target_year, req.target_semester, req.target_campus,req.new_enrollees
             )
-            # Need actual un-arrayed vector for DB logic
             vec = pipeline.ft.build_feature_vector(
                 c.code, req.target_year, req.target_semester, req.target_campus,req.new_enrollees
             )
 
-            # For courses with no prerequisites (first-year), use new_enrollees
-            # as their latent demand if it's provided.
-            # Prerequisites are stored as a JSON string e.g. "[]" or '["CSC243"]'
             effective_latent = vec["latent_demand_count"]
             if effective_latent == 0 and req.new_enrollees > 0:
                 try:
@@ -105,56 +102,62 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
                 if len(prereqs) == 0:
                     effective_latent = req.new_enrollees
 
-            preds, probas = pipeline.predict([feats])
+            # predict now returns (preds, probas) taking the campus argument
+            preds, probas = pipeline.predict([feats], req.target_campus)
+            
+            # The exact F1.5-Score Threshold classification from the model (1 or 0)
+            is_recommended_by_ml = bool(preds[0])
+            
             confidence = float(probas[0].max())
             offer_score = float(probas[0][1]) * 100  # Prob of class 1
 
-            # Apply level multiplier to the recursive dependency yield
-            # (Higher level courses are closer to graduation and thus more critical)
             yield_val = vec["bottleneck_score"]
             if c.course_level and c.course_level >= 400:
                 yield_val = int(yield_val * 1.5)
 
-            raw_predictions.append({
-                "course_code": c.code,
-                "prefix": c.prefix.upper(),
-                "course_type": (c.type or "").lower(),
-                "latent_demand": effective_latent,
-                "bottleneck_score": yield_val,
-                "offer_score": offer_score,
-                "confidence": confidence,
-                "offer": False  # determined below by slot selection
-            })
+            # ("Quota" handles prioritizing over-saturated pools if enabled)
+            if is_recommended_by_ml:
+                raw_predictions.append({
+                    "course_code": c.code,
+                    "prefix": c.prefix.upper(),
+                    "course_type": (c.type or "").lower(),
+                    "latent_demand": effective_latent,
+                    "bottleneck_score": yield_val,
+                    "offer_score": offer_score,
+                    "confidence": confidence,
+                    "offer": True if not req.use_quotas else False
+                })
         except FileNotFoundError as e:
             raise HTTPException(status_code=500, detail=str(e))
         except Exception as e:
             print(f"Failed extracting features for {c.code}: {e}")
             continue
 
-    # 3. Slot-based selection: pick top-K courses per slot
-    SLOTS = [
-        {"prefix": "CSC", "type": "core",     "count": req.slots.csc_core},
-        {"prefix": "CSC", "type": "elective", "count": req.slots.csc_elective},
-        {"prefix": "BIF", "type": "core",     "count": req.slots.bif_core},
-        {"prefix": "BIF", "type": "elective", "count": req.slots.bif_elective},
-        {"prefix": "MTH", "type": None,       "count": req.slots.mth},
-        {"prefix": "STA", "type": None,       "count": req.slots.sta},
-    ]
-    selected_codes: set = set()
-    for slot in SLOTS:
-        candidates = sorted(
-            [
-                p for p in raw_predictions
-                if p["prefix"] == slot["prefix"]
-                and (slot["type"] is None or p["course_type"] == slot["type"])
-                and p["course_code"] not in selected_codes
-            ],
-            key=lambda x: x["offer_score"],
-            reverse=True
-        )
-        for p in candidates[:slot["count"]]:
-            p["offer"] = True
-            selected_codes.add(p["course_code"])
+    # 3. Slot-based selection (OPTIONAL)
+    if req.use_quotas:
+        SLOTS = [
+            {"prefix": "CSC", "type": "core",     "count": req.slots.csc_core},
+            {"prefix": "CSC", "type": "elective", "count": req.slots.csc_elective},
+            {"prefix": "BIF", "type": "core",     "count": req.slots.bif_core},
+            {"prefix": "BIF", "type": "elective", "count": req.slots.bif_elective},
+            {"prefix": "MTH", "type": None,       "count": req.slots.mth},
+            {"prefix": "STA", "type": None,       "count": req.slots.sta},
+        ]
+        selected_codes: set = set()
+        for slot in SLOTS:
+            candidates = sorted(
+                [
+                    p for p in raw_predictions
+                    if p["prefix"] == slot["prefix"]
+                    and (slot["type"] is None or p["course_type"] == slot["type"])
+                    and p["course_code"] not in selected_codes
+                ],
+                key=lambda x: x["offer_score"],
+                reverse=True
+            )
+            for p in candidates[:slot["count"]]:
+                p["offer"] = True
+                selected_codes.add(p["course_code"])
 
     # 3. Calculate Sections
     planned_entries = planner.plan_predictions(raw_predictions)
