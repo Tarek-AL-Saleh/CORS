@@ -63,3 +63,8 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+tree.py
+structure.txt
+codebase_summary.txt
+
+documents/*

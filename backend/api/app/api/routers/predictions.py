@@ -86,11 +86,11 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
     for c in all_courses:
         try:
             feats = pipeline.ft.predict_payload(
-                c.code, req.target_year, req.target_semester, req.target_campus
+                c.code, req.target_year, req.target_semester, req.target_campus,req.new_enrollees
             )
             # Need actual un-arrayed vector for DB logic
             vec = pipeline.ft.build_feature_vector(
-                c.code, req.target_year, req.target_semester, req.target_campus
+                c.code, req.target_year, req.target_semester, req.target_campus,req.new_enrollees
             )
 
             # For courses with no prerequisites (first-year), use new_enrollees

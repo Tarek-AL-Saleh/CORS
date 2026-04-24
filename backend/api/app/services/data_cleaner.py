@@ -75,22 +75,3 @@ def split_course_code(code):
     if match:
         return match.group(1), match.group(2)
     return code, None
-
-if __name__ == '__main__':
-    # Example Usage:
-    cleaned_df = process_course_offerings('ai-engine/data/raw/ComputerScienceandMathematics-PassingRates.xlsx')
-    print(cleaned_df.head())
-
-    # Applying the split to our existing dataframe
-    cleaned_df[['course_prefix', 'course_num']] = cleaned_df['course_code'].apply(
-        lambda x: pd.Series(split_course_code(x))
-    )
-
-    # Reordering for better readability
-    cols = ['year', 'semester', 'campus', 'course_code', 'course_prefix', 'course_num', 
-            'total_enrolled', 'passed_count', 'failed_count', 'fail_ratio', 'is_offered']
-    cleaned_df = cleaned_df[cols]
-
-    print(cleaned_df[['course_code', 'course_prefix', 'course_num']].head())
-    cleaned_df.drop(columns=['course_code'], inplace=True)
-    cleaned_df.to_csv('clean_course_history.csv', index=False)

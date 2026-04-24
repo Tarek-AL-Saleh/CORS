@@ -16,17 +16,6 @@ export interface KPIData {
   modelConfidence: string;
 }
 
-export interface EnrollmentPoint {
-  sem: string;
-  enrolled: number;
-}
-
-export interface DeptSlice {
-  dept: string;
-  count: number;
-  color: string;
-}
-
 // ─── Data Management ─────────────────────────────────────────────────────────
 
 export interface GradeRecord {
@@ -106,7 +95,7 @@ export interface PlacementTarget {
 }
 
 export interface DoctorResponse {
-    id: number
-    name: string
-    allowed_courses?: string
+  id: number
+  name: string
+  allowed_courses?: string
 }

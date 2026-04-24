@@ -111,11 +111,8 @@ async def upload_offerings(file: UploadFile = File(...), db: Session = Depends(g
             df = pd.read_csv(temp_file_path)
         else:
             # According to user constraints: .xlsx implies the Raw format from university reports
-            engine_src = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))), "ai-engine", "src")
-            if engine_src not in sys.path:
-                sys.path.append(engine_src)
             try:
-                from data_cleaner import process_course_offerings
+                from app.services.data_cleaner import process_course_offerings
                 df = process_course_offerings(temp_file_path)
             except Exception as e:
                 # If data_cleaner fails, fallback to simple excel read just in case

@@ -52,7 +52,7 @@ class FeatureTransformer:
             terms.append((y, reversed_order[val]))
         return terms
 
-    def _calc_latent_demand(self, course_code: str, campus: str, current_year: int, current_semester: str) -> int:
+    def _calc_latent_demand(self, course_code: str, campus: str, current_year: int, current_semester: str, new_enrollees: int) -> int:
         course = self.courses.get(course_code)
         if not course or not course.prerequisites:
             return 0
@@ -61,8 +61,9 @@ class FeatureTransformer:
         except:
             prereqs = []
         if not prereqs or self.off_df.empty:
-            return 0
+            return new_enrollees
         
+
         past_2_terms = self._get_past_terms(current_year, current_semester, N=2)
         total_passed = 0
         for p_code in prereqs:
@@ -133,12 +134,12 @@ class FeatureTransformer:
                 stack.extend(self.adj.get(curr, []))
         return len(descendants)
 
-    def build_feature_vector(self, course_code: str, year: int, semester: str, campus: str) -> Dict[str, Any]:
+    def build_feature_vector(self, course_code: str, year: int, semester: str, campus: str, new_enrollees: int) -> Dict[str, Any]:
         course = self.courses.get(course_code)
         if not course:
             raise ValueError(f"Course {course_code} not found in DB")
 
-        latent = self._calc_latent_demand(course_code, campus, year, semester)
+        latent = self._calc_latent_demand(course_code, campus, year, semester, new_enrollees)
         bottleneck = self._calc_bottleneck_score(course_code)
         align = 1.0 if course.study_plan and course.study_plan.lower() in [semester.lower(), "both"] else 0.0
 
@@ -161,9 +162,9 @@ class FeatureTransformer:
             "campus_Byblos": 1 if campus == "Byblos" else 0
         }
 
-    def predict_payload(self, course_code: str, year: int, semester: str, campus: str) -> list:
+    def predict_payload(self, course_code: str, year: int, semester: str, campus: str, new_enrollees: int) -> list:
         # Output strictly in the order of the model training
-        vec = self.build_feature_vector(course_code, year, semester, campus)
+        vec = self.build_feature_vector(course_code, year, semester, campus, new_enrollees)
         keys = [
             "year", "is_core", "is_math", "avg_fail_ratio_3y", "recent_fail_count",
             "is_offered_last_year", "latent_demand_count", "bottleneck_score",
