@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { Pencil, Trash2, Layers, X, Check, RotateCcw } from 'lucide-react'
-import { DEPT_CHIP_COLORS } from '@/data/mockData'
+import { DEPT_CHIP_COLORS } from '@/data/data'
 import type { ScheduledEntry } from '@/types'
 
 interface CourseLotProps {
