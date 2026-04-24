@@ -144,7 +144,6 @@ class FeatureTransformer:
         align = 1.0 if course.study_plan and course.study_plan.lower() in [semester.lower(), "both"] else 0.0
 
         return {
-            "year": int(year),
             "is_core": 1 if course.is_core else 0,
             "is_math": 1 if course.is_math else 0,
             "avg_fail_ratio_3y": float(self._calc_avg_fail_ratio_3y(course_code, campus, year)),
@@ -164,7 +163,7 @@ class FeatureTransformer:
         # Output strictly in the order of the model training
         vec = self.build_feature_vector(course_code, year, semester, campus, new_enrollees)
         keys = [
-            "year", "is_core", "is_math", "avg_fail_ratio_3y", "recent_fail_count",
+            "is_core", "is_math", "avg_fail_ratio_3y", "recent_fail_count",
             "is_offered_last_year", "latent_demand_count", "bottleneck_score",
             "plan_alignment_score", "course_level", "gap_since_last_offered",
             "semester_Fall", "semester_Spring", "semester_Summer"

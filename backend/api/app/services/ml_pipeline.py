@@ -106,7 +106,7 @@ class MLPipeline:
         
         for r in records:
             features = [
-                float(r.year), float(r.is_core), float(r.is_math), 
+                float(r.is_core), float(r.is_math), 
                 float(r.avg_fail_ratio_3y), float(r.recent_fail_count), 
                 float(r.is_offered_last_year), float(r.latent_demand_count),
                 float(r.bottleneck_score), float(r.plan_alignment_score),
@@ -149,14 +149,15 @@ class MLPipeline:
         
         # Avoid division by zero
         beta = 1.5
-        fbeta_scores = ((1 + beta**2) * precisions * recalls) / ((beta**2 * precisions) + recalls + 1e-8)
-        best_idx_fbeta = np.argmax(fbeta_scores)
+        denom = (beta**2 * precisions) + recalls + 1e-8
+        fbeta_scores = ((1 + beta**2) * precisions * recalls) / denom
         
-        # Fallback if threshold is missing at edge case
-        try:
+        # Sane defaults if data is weird
+        if np.max(fbeta_scores) > 0:
+            best_idx_fbeta = np.argmax(fbeta_scores)
             best_threshold = float(thresholds[best_idx_fbeta])
-        except IndexError:
-            best_threshold = 0.5 
+        else:
+            best_threshold = 0.4 # Reasonable heuristic fallback
 
         model_path = MODEL_DIR / f"ensemble_model_{campus.lower()}.pkl"
         joblib.dump(ensemble, model_path)
@@ -166,13 +167,18 @@ class MLPipeline:
     def train_and_save(self):
         records = self.db.query(models.TrainingRecord).all()
         if not records:
+            print("No training records found. Populating from history...")
             res = self.prepare_training_dataset()
             if res.get("status") == "error":
                 raise ValueError("No data available to train.")
 
-        # Train for both campuses and save threshold
+        print("Training Beirut model...")
         threshold_beirut = self.train_campus_model("Beirut")
+        print(f"Beirut trained. Threshold: {threshold_beirut}")
+
+        print("Training Byblos model...")
         threshold_byblos = self.train_campus_model("Byblos")
+        print(f"Byblos trained. Threshold: {threshold_byblos}")
 
         threshold_data = {
             "Beirut": threshold_beirut,
@@ -183,6 +189,7 @@ class MLPipeline:
             json.dump(threshold_data, f, indent=4)
 
         total_records = self.db.query(models.TrainingRecord).count()
+        print("All models saved successfully.")
 
         return {
             "status": "success",
