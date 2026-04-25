@@ -4,15 +4,13 @@ from app.db import models
 from app.schemas import domain
 from typing import List
 
-def resolve_course_code(db: Session, course_code: str):
-    # Try exact match first
+def resolve_course_code(db: Session, course_code: str, course_name: str = None):
+    # 1. Try exact match first
     res = db.query(models.Course).filter(models.Course.code == course_code).first()
     if res:
         return course_code
     
-    # Try alias match
-    # Since aliases is a JSON string, we can use ILIKE for a simple search or query all and check
-    # For performance on small-medium datasets, we'll query courses with aliases
+    # 2. Try alias match
     courses_with_aliases = db.query(models.Course).filter(models.Course.aliases.isnot(None)).all()
     for c in courses_with_aliases:
         try:
@@ -21,15 +19,47 @@ def resolve_course_code(db: Session, course_code: str):
                 return c.code
         except:
             continue
+            
+    # 3. Try name-based match (Self-Healing)
+    if course_name:
+        clean_target = ''.join(e for e in course_name if e.isalnum()).lower()
+        # For performance, we'll check courses with similar names
+        # But for robustness as requested, we check all
+        all_courses = db.query(models.Course).all()
+        for c in all_courses:
+            clean_c = ''.join(e for e in c.name if e.isalnum()).lower()
+            if clean_c == clean_target:
+                return c.code
+
     return course_code
 
 def get_db_course(db: Session, course_code: str):
     return db.query(models.Course).filter(models.Course.code == course_code).first()
 
 def upsert_course(db: Session, course: domain.CourseBase):
-    resolved_code = resolve_course_code(db, course.code)
+    resolved_code = resolve_course_code(db, course.code, course.name)
     db_course = get_db_course(db, resolved_code)
+    
     if db_course:
+        # If we resolved to a different code (e.g. name match or alias), 
+        # ensure the incoming code is in the aliases list
+        if resolved_code != course.code:
+            try:
+                aliases = json.loads(db_course.aliases) if db_course.aliases else []
+                if course.code not in aliases:
+                    aliases.append(course.code)
+                    aliases.sort()
+                    db_course.aliases = json.dumps(aliases)
+                    # If we just added a new alias, maybe update the ID to the unified format
+                    new_unified_code = "/".join(aliases)
+                    if db_course.code != new_unified_code:
+                        # This is a bit tricky since CODE is a primary key.
+                        # We'll stick to the existing resolved_code for now to avoid PK mutation issues
+                        # or just keep it as is. The migration script will clean it up on next boot.
+                        pass
+            except:
+                pass
+
         db_course.name = course.name
         db_course.prefix = course.prefix
         db_course.number = course.number
