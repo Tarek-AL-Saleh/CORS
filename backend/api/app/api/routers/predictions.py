@@ -152,7 +152,7 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
             candidates = sorted(
                 [
                     p for p in raw_predictions
-                    if p["prefix"] == slot["prefix"]
+                    if slot["prefix"] in p["prefix"].split("/")
                     and (slot["type"] is None or p["course_type"] == slot["type"])
                     and p["course_code"] not in selected_codes
                 ],
