@@ -9,6 +9,7 @@ from app.db.database import get_db
 from app.db import models
 from app.services.ml_pipeline import MLPipeline
 from app.services.section_planner import SectionPlanner
+from app.services.ml_feature_transformer import FeatureTransformer
 from app.schemas import domain
 
 router = APIRouter()
@@ -26,8 +27,10 @@ class BulkPredictRequest(BaseModel):
     target_year: int
     target_semester: str
     target_campus: str
-    new_enrollees: int = 0
-    use_quotas: bool = False  # Bypasses the quota system if False
+    new_freshman: int = 0
+    new_sophomores: int = 0
+    new_masters: int = 0
+    use_quotas: bool = False
     slots: SlotConfig = SlotConfig()
 
 @router.get("/next-term")
@@ -87,20 +90,33 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
     for c in all_courses:
         try:
             feats = pipeline.ft.predict_payload(
-                c.code, req.target_year, req.target_semester, req.target_campus,req.new_enrollees
+                c.code, req.target_year, req.target_semester, req.target_campus, req.new_freshman, req.new_sophomores, req.new_masters
             )
             vec = pipeline.ft.build_feature_vector(
-                c.code, req.target_year, req.target_semester, req.target_campus,req.new_enrollees
+                c.code, req.target_year, req.target_semester, req.target_campus, req.new_freshman, req.new_sophomores, req.new_masters
             )
 
             effective_latent = vec["latent_demand_count"]
-            if effective_latent == 0 and req.new_enrollees > 0:
+            if effective_latent == 0:
+                # Fallback: if no historical prereq data, use appropriate influx
+                course_types_raw = c.type or "elective"
+                import json as _j
                 try:
-                    prereqs = json.loads(c.prerequisites) if c.prerequisites else []
-                except Exception:
-                    prereqs = []
-                if len(prereqs) == 0:
-                    effective_latent = req.new_enrollees
+                    ctypes = _j.loads(course_types_raw) if course_types_raw.startswith('[') else [course_types_raw]
+                except:
+                    ctypes = [course_types_raw]
+                
+                # Sophomore gateway check
+                is_gateway = c.code in FeatureTransformer.SOPHOMORE_GATEWAY_CODES or \
+                             any(part in FeatureTransformer.SOPHOMORE_GATEWAY_CODES for part in c.code.split("/"))
+
+                if any(t in ["masters", "minor"] for t in ctypes):
+                    effective_latent = req.new_masters
+                elif is_gateway:
+                    effective_latent = req.new_sophomores
+                else:
+                    # Default for courses with no historical demand and no prereqs is freshman
+                    effective_latent = req.new_freshman
 
             # predict now returns (preds, probas) taking the campus argument
             preds, probas = pipeline.predict([feats], req.target_campus)

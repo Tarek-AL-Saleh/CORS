@@ -116,7 +116,9 @@ const SLOT_DEFS = [
 export function RecommendationEngine() {
   // Config
   const [campus, setCampus] = useState("Beirut");
-  const [newEnrollees, setNewEnrollees] = useState("0");
+  const [newFreshman, setNewFreshman] = useState("50");
+  const [newSophomores, setNewSophomores] = useState("100");
+  const [newMasters, setNewMasters] = useState("10");
   const [slots, setSlots] = useState({
     csc_core: 12, csc_elective: 3,
     bif_core: 6,  bif_elective: 2,
@@ -188,7 +190,9 @@ export function RecommendationEngine() {
         target_year: nextTerm.year,
         target_semester: nextTerm.semester,
         target_campus: campus,
-        new_enrollees: parseInt(newEnrollees) || 0,
+        new_freshman: parseInt(newFreshman) || 0,
+        new_sophomores: parseInt(newSophomores) || 0,
+        new_masters: parseInt(newMasters) || 0,
         use_quotas: useQuotas,
         slots,
       });
@@ -305,14 +309,34 @@ export function RecommendationEngine() {
             </select>
           </div>
 
-          <div className="min-w-[160px] flex-1 max-w-[220px]">
-            <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] mb-2.5">Student Influx (Est.)</p>
-            <input
-              type="number" min="0" value={newEnrollees}
-              onChange={(e) => setNewEnrollees(e.target.value)}
-              placeholder="e.g. 120"
-              className="w-full bg-surface border border-premium rounded-lg px-4 py-3 text-sm text-main font-bold focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] shadow-sm "
-            />
+          <div className="flex flex-1 gap-4">
+            <div className="flex-1">
+              <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] mb-2.5">New Freshman</p>
+              <input
+                type="number" min="0" value={newFreshman}
+                onChange={(e) => setNewFreshman(e.target.value)}
+                placeholder="Freshman"
+                className="w-full bg-surface border border-premium rounded-lg px-4 py-3 text-sm text-main font-bold focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] shadow-sm "
+              />
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] mb-2.5">New Sophomores</p>
+              <input
+                type="number" min="0" value={newSophomores}
+                onChange={(e) => setNewSophomores(e.target.value)}
+                placeholder="Sophomore"
+                className="w-full bg-surface border border-premium rounded-lg px-4 py-3 text-sm text-main font-bold focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] shadow-sm "
+              />
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] mb-2.5">New Masters</p>
+              <input
+                type="number" min="0" value={newMasters}
+                onChange={(e) => setNewMasters(e.target.value)}
+                placeholder="Masters"
+                className="w-full bg-surface border border-premium rounded-lg px-4 py-3 text-sm text-main font-bold focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] shadow-sm "
+              />
+            </div>
           </div>
         </div>
 

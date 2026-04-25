@@ -52,24 +52,65 @@ class FeatureTransformer:
             terms.append((y, reversed_order[val]))
         return terms
 
-    def _calc_latent_demand(self, course_code: str, campus: str, current_year: int, current_semester: str, new_enrollees: int) -> int:
-        course = self.courses.get(course_code)
-        if not course or not course.prerequisites:
-            # No prerequisites = open to new enrollees (first-year courses etc.)
-            return new_enrollees
+    # Courses that appear in the Sophomore study plan for CS/BIF students.
+    # Their demand is directly driven by the number of new sophomores entering the dept.
+    SOPHOMORE_GATEWAY_CODES = {
+        # CS Sophomore (Fall): CSC243, MTH201, MTH207
+        "CSC243", "MTH201", "MTH207",
+        # CS Sophomore (Spring): CSC245, CSC320
+        "CSC245", "CSC320",
+        # BIF Sophomore (Fall): BIF243, MTH201
+        "BIF243",
+        # BIF Sophomore (Spring): MTH207, BIF245, BIF415
+        "BIF245", "BIF415",
+    }
+
+    def _get_course_types(self, raw_type: str) -> list:
+        """Parse type field – may be plain string or JSON array."""
+        if not raw_type:
+            return ["elective"]
         try:
-            prereqs = json.loads(course.prerequisites)
+            import json as _j
+            parsed = _j.loads(raw_type)
+            return parsed if isinstance(parsed, list) else [raw_type]
+        except:
+            return [raw_type]
+
+    def _calc_latent_demand(self, course_code: str, campus: str, current_year: int, current_semester: str, new_freshman: int, new_sophomores: int, new_masters: int) -> int:
+        course = self.courses.get(course_code)
+        if not course:
+            return 0
+
+        # ── 1. Sophomore Gateway Courses ─────────────────────────────────────
+        # Any component of the joint code is a gateway course → use new_sophomores
+        code_parts = set(course_code.split("/"))
+        if code_parts & self.SOPHOMORE_GATEWAY_CODES:
+            return new_sophomores
+
+        # ── 2. Parse prerequisites ────────────────────────────────────────────
+        try:
+            prereqs = json.loads(course.prerequisites) if course.prerequisites else []
         except:
             prereqs = []
+
+        # ── 3. Masters/Minor courses with no prerequisites → use new_masters ──
+        course_types = self._get_course_types(course.type)
+        if not prereqs and any(t in ["masters", "minor"] for t in course_types):
+            return new_masters
+
+        # ── 4. No prerequisites at all (Freshman courses) → use new_freshman ──
         if not prereqs:
-            return new_enrollees
+            return new_freshman
+
+        # ── 5. Has prerequisites → bottleneck from historical pass-through ─────
+        # For each prereq, find the most recently available passed_count (no double-counting).
+        # Take the minimum across all prereqs — the bottleneck limits advancement.
         if self.off_df.empty:
             return 0
 
-        # Look back up to 4 terms to find the most recently offered instance of each prereq
         past_4_terms = self._get_past_terms(current_year, current_semester, N=4)
-
-        prereq_passed_counts = []
+        prereq_data = []
+        
         for p_code in prereqs:
             for (y, s) in past_4_terms:
                 match = self.off_df[
@@ -79,16 +120,43 @@ class FeatureTransformer:
                     (self.off_df['semester'] == s)
                 ]
                 if not match.empty:
-                    # Take only the most recent term for this prereq — no cross-term double-counting
-                    prereq_passed_counts.append(int(match['passed_count'].sum()))
+                    prereq_data.append((p_code, int(match['passed_count'].sum())))
                     break
 
-        if not prereq_passed_counts:
+        if not prereq_data:
             return 0
 
-        # The bottleneck prerequisite limits advancement:
-        # Demand = students who passed ALL prerequisites = min across all prereqs
-        return min(prereq_passed_counts)
+        # ── 6. Target-Aware Heuristic Formula ────────────────────────────────
+        target_prefix = course_code[:3].upper()
+        
+        dept_counts = []
+        math_counts = []
+        all_counts = []
+        
+        for p_code, count in prereq_data:
+            all_counts.append(count)
+            prefix = p_code[:3].upper()
+            if prefix in ["MTH", "STA"]:
+                math_counts.append(count)
+            else:
+                dept_counts.append(count)
+
+        import numpy as np
+        
+        # If target is Math/Stat -> just average everything
+        if target_prefix in ["MTH", "STA"]:
+            return int(np.mean(all_counts)) if all_counts else 0
+
+        # If target is CSC/BIF -> Hybrid logic
+        d_avg = np.mean(dept_counts) if dept_counts else 0
+        m_avg = np.mean(math_counts) if math_counts else 0
+
+        if d_avg > 0 and m_avg > 0:
+            return int(d_avg + (m_avg * 0.2))
+        elif d_avg > 0:
+            return int(d_avg)
+        else:
+            return int(m_avg * 0.5)
 
     def _calc_avg_fail_ratio_3y(self, course_code: str, campus: str, current_year: int) -> float:
         if self.off_df.empty: return 0.0
@@ -152,12 +220,12 @@ class FeatureTransformer:
                 stack.extend(self.adj.get(curr, []))
         return len(descendants)
 
-    def build_feature_vector(self, course_code: str, year: int, semester: str, campus: str, new_enrollees: int) -> Dict[str, Any]:
+    def build_feature_vector(self, course_code: str, year: int, semester: str, campus: str, new_freshman: int, new_sophomores: int, new_masters: int = 0) -> Dict[str, Any]:
         course = self.courses.get(course_code)
         if not course:
             raise ValueError(f"Course {course_code} not found in DB")
 
-        latent = self._calc_latent_demand(course_code, campus, year, semester, new_enrollees)
+        latent = self._calc_latent_demand(course_code, campus, year, semester, new_freshman, new_sophomores, new_masters)
         bottleneck = self._calc_bottleneck_score(course_code)
         align = 1.0 if course.study_plan and course.study_plan.lower() in [semester.lower(), "both"] else 0.0
 
@@ -177,9 +245,9 @@ class FeatureTransformer:
             "semester_Summer": 1 if semester == "Summer" else 0,
         }
 
-    def predict_payload(self, course_code: str, year: int, semester: str, campus: str, new_enrollees: int) -> list:
+    def predict_payload(self, course_code: str, year: int, semester: str, campus: str, new_freshman: int, new_sophomores: int, new_masters: int = 0) -> list:
         # Output strictly in the order of the model training
-        vec = self.build_feature_vector(course_code, year, semester, campus, new_enrollees)
+        vec = self.build_feature_vector(course_code, year, semester, campus, new_freshman, new_sophomores, new_masters)
         keys = [
             "is_core", "is_math", "avg_fail_ratio_3y", "recent_fail_count",
             "is_offered_last_year", "latent_demand_count", "bottleneck_score",

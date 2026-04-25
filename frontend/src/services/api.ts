@@ -47,7 +47,7 @@ export const api = {
   predict: {
     train: () => apiClient.post('/predict/train').then(res => res.data),
     nextTerm: () => apiClient.get('/predict/next-term').then(res => res.data),
-    bulkPredict: (data: { run_name: string, target_year: number, target_semester: string, target_campus: string, new_enrollees: number, use_quotas?: boolean, slots: { csc_core: number, csc_elective: number, bif_core: number, bif_elective: number, mth: number, sta: number } }) => 
+    bulkPredict: (data: { run_name: string, target_year: number, target_semester: string, target_campus: string, new_freshman: number, new_sophomores: number, new_masters: number, use_quotas?: boolean, slots: { csc_core: number, csc_elective: number, bif_core: number, bif_elective: number, mth: number, sta: number } }) => 
       apiClient.post('/predict/bulk', data).then(res => res.data),
     getRuns: (campus?: string) => apiClient.get('/predict/runs', { params: { campus } }).then(res => res.data)
   },
