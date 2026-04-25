@@ -52,17 +52,28 @@ class MLPipeline:
         allowed_prefixes = ['CSC', 'MTH', 'BIF', 'STA']
         new_records = []
         for year, semester, campus in contexts:
-            offered_codes = set(
-                o.course_code for o in all_offerings 
-                if o.year == year and o.semester == semester and o.campus == campus and o.is_offered
-            )
+            # Back-calculate historical influx for this specific term
+            term_offs = [o for o in all_offerings if o.year == year and o.semester == semester and o.campus == campus]
+            
+            # Freshman baseline: MTH101
+            f_off = next((o for o in term_offs if o.course_code == "MTH101"), None)
+            h_fresh = f_off.enrolled_count if f_off else 0
+            
+            # Sophomore baseline: CSC243 or BIF243 (check aliases/joint codes too)
+            s_codes = {"CSC243", "BIF243", "BIF243/CSC243", "CSC243/BIF243"}
+            s_offs = [o for o in term_offs if o.course_code in s_codes]
+            h_soph = max([o.enrolled_count for o in s_offs]) if s_offs else 0
+            
+            h_masters = 5 # Assumption
+            
+            offered_codes = set(o.course_code for o in term_offs if o.is_offered)
             
             for course in all_courses:
                 if course.prefix.upper() not in allowed_prefixes:
                     continue
                 
                 try:
-                    vec = self.ft.build_feature_vector(course.code, year, semester, campus, 0)
+                    vec = self.ft.build_feature_vector(course.code, year, semester, campus, h_fresh, h_soph, h_masters)
                     record = models.TrainingRecord(
                         year=year,
                         semester=semester,

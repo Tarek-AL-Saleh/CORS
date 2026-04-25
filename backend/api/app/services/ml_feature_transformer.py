@@ -220,7 +220,7 @@ class FeatureTransformer:
                 stack.extend(self.adj.get(curr, []))
         return len(descendants)
 
-    def build_feature_vector(self, course_code: str, year: int, semester: str, campus: str, new_freshman: int, new_sophomores: int, new_masters: int = 0) -> Dict[str, Any]:
+    def build_feature_vector(self, course_code: str, year: int, semester: str, campus: str, new_freshman: int = 0, new_sophomores: int = 0, new_masters: int = 0) -> Dict[str, Any]:
         course = self.courses.get(course_code)
         if not course:
             raise ValueError(f"Course {course_code} not found in DB")
@@ -245,7 +245,7 @@ class FeatureTransformer:
             "semester_Summer": 1 if semester == "Summer" else 0,
         }
 
-    def predict_payload(self, course_code: str, year: int, semester: str, campus: str, new_freshman: int, new_sophomores: int, new_masters: int = 0) -> list:
+    def predict_payload(self, course_code: str, year: int, semester: str, campus: str, new_freshman: int = 0, new_sophomores: int = 0, new_masters: int = 0) -> list:
         # Output strictly in the order of the model training
         vec = self.build_feature_vector(course_code, year, semester, campus, new_freshman, new_sophomores, new_masters)
         keys = [
