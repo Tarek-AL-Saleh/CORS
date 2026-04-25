@@ -201,10 +201,14 @@ export function RecommendationEngine() {
   // ─── Filtering & sorting ──────────────────────────────────────────────────
   const filteredEntries = entries
     .filter((e) => {
-      const prefix = getPrefix(e.course_code);
-      if (filterPrefix !== "All" && prefix !== filterPrefix) return false;
+      const matchesPrefix = (code: string, prefix: string) => {
+        if (prefix === "All") return true;
+        return code.split("/").some((part) => part.startsWith(prefix));
+      };
 
-      const isCore = ["MTH", "STA"].includes(prefix) || courseTypeMap[e.course_code] === "core";
+      if (!matchesPrefix(e.course_code, filterPrefix)) return false;
+
+      const isCore = e.course_code.split("/").some(c => ["MTH", "STA"].includes(c.match(/^[A-Z]+/)?.[0] || "")) || courseTypeMap[e.course_code] === "core";
       if (filterType === "Core" && !isCore) return false;
       if (filterType === "Elective" && isCore) return false;
 
