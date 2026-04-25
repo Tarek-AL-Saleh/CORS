@@ -66,18 +66,26 @@ def upsert_course(db: Session, course: domain.CourseBase):
                 
                 # Check if we need to RENAME the Primary Key and move data
                 if original_db_code != new_unified_code:
-                    # 1. Create the NEW unified Course record (copying from db_course)
-                    # For joint courses, we also joint the prefix and number if they differ
                     import re
                     joint_prefix = "/".join(sorted(list(set([re.match(r'^([A-Z]+)', c).group(1) for c in aliases if re.match(r'^([A-Z]+)', c)]))))
-                    joint_number = db_course.number # Usually the same for cross-listed
+                    joint_number = db_course.number
+
+                    # Collect all types from both courses into a JSON array
+                    import json as _json
+                    TYPE_PRIORITY = ["core", "math", "elective", "minor", "masters"]
+                    def _parse_types(t: str) -> list:
+                        try: return _json.loads(t) if t and t.startswith('[') else [t] if t else []
+                        except: return [t] if t else []
+                    combined_types = sorted(list(set(_parse_types(db_course.type) + _parse_types(course.type))),
+                                          key=lambda t: TYPE_PRIORITY.index(t) if t in TYPE_PRIORITY else 99)
+                    joint_type = _json.dumps(combined_types)
 
                     new_course = models.Course(
                         code=new_unified_code,
                         name=db_course.name,
                         prefix=joint_prefix,
                         number=joint_number,
-                        type=db_course.type,
+                        type=joint_type,
                         study_plan=db_course.study_plan,
                         prerequisites=prereq_json,
                         is_math=db_course.is_math,

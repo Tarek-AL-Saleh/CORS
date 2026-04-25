@@ -51,12 +51,22 @@ def run_course_unification(db: Session):
         if not golden_course:
             import re
             joint_prefix = "/".join(sorted(list(set([re.match(r'^([A-Z]+)', c).group(1) for c in codes if re.match(r'^([A-Z]+)', c)]))))
+            
+            # Collect all types from group into a JSON array
+            TYPE_PRIORITY = ["core", "math", "elective", "minor", "masters"]
+            def _parse_types(t: str) -> list:
+                try: return json.loads(t) if t and t.startswith('[') else [t] if t else []
+                except: return [t] if t else []
+            all_types = sorted(list(set(t for c in group for t in _parse_types(c.type))),
+                               key=lambda t: TYPE_PRIORITY.index(t) if t in TYPE_PRIORITY else 99)
+            joint_type = json.dumps(all_types)
+
             golden_course = models.Course(
                 code=golden_code,
                 name=primary.name,
                 prefix=joint_prefix,
                 number=primary.number,
-                type=primary.type,
+                type=joint_type,
                 study_plan=primary.study_plan,
                 prerequisites=json.dumps(list(merged_prereqs)) if merged_prereqs else None,
                 is_math=primary.is_math,
@@ -65,7 +75,7 @@ def run_course_unification(db: Session):
                 aliases=json.dumps(codes)
             )
             db.add(golden_course)
-            db.flush() # Ensure ID is available for relationships if needed
+            db.flush()
         
         # Merge offerings
         offerings = db.query(models.CourseOffering).filter(models.CourseOffering.course_code.in_(codes)).all()

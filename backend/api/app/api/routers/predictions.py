@@ -119,11 +119,20 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
             if c.course_level and c.course_level >= 400:
                 yield_val = int(yield_val * 1.5)
 
-            # ("Quota" handles prioritizing over-saturated pools if enabled)
+            # Parse course type - may be a JSON array for cross-listed courses
+            try:
+                raw_type = c.type or "elective"
+                import json as _json
+                course_types = _json.loads(raw_type) if raw_type.startswith('[') else [raw_type]
+                course_types = [t.lower() for t in course_types]
+            except:
+                course_types = [(c.type or "elective").lower()]
+
             raw_predictions.append({
                 "course_code": c.code,
                 "prefix": c.prefix.upper(),
-                "course_type": (c.type or "").lower(),
+                "course_types": course_types,  # List of types
+                "course_type": course_types[0] if course_types else "elective",  # Compat
                 "latent_demand": effective_latent,
                 "bottleneck_score": yield_val,
                 "offer_score": offer_score,
@@ -153,7 +162,8 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
                 [
                     p for p in raw_predictions
                     if slot["prefix"] in p["prefix"].split("/")
-                    and (slot["type"] is None or p["course_type"] == slot["type"])
+                    and (slot["type"] is None or slot["type"] in p["course_types"])
+                    and all(t not in ["masters", "minor"] for t in p["course_types"])  # Exclude grad/minor from UG slots
                     and p["course_code"] not in selected_codes
                 ],
                 key=lambda x: x["offer_score"],

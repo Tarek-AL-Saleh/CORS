@@ -8,6 +8,17 @@ import { api } from "@/services/api";
 // const getPrefix = (code: string) => code.split("/").map(c => c.match(/^[A-Z]+/)?.[0] ?? "").filter(Boolean).join("/");
 const getDemandLevel = (v: number) => (v > 40 ? "High" : v > 15 ? "Medium" : "Low");
 
+const getTypesForCode = (code: string, map: Record<string, string>): string[] => {
+  const parseTypes = (raw: string): string[] => {
+    try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [raw]; }
+    catch { return [raw]; }
+  };
+  if (map[code]) return parseTypes(map[code]); // Exact joint-code lookup
+  // For joint codes not found directly, union types from all components
+  const found = code.split("/").flatMap(p => map[p] ? parseTypes(map[p]) : []);
+  return found.length > 0 ? [...new Set(found)] : ["elective"];
+};
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function ChipGroup({
@@ -215,9 +226,16 @@ export function RecommendationEngine() {
 
       if (!matchesPrefix(e.course_code, filterPrefix)) return false;
 
-      const isCore = e.course_code.split("/").some((c: string) => ["MTH", "STA"].includes(c.match(/^[A-Z]+/)?.[0] || "")) || courseTypeMap[e.course_code] === "core";
-      if (filterType === "Core" && !isCore) return false;
-      if (filterType === "Elective" && isCore) return false;
+      const courseTypes = getTypesForCode(e.course_code, courseTypeMap);
+      const isCore    = courseTypes.some(t => t === "core" || t === "math");
+      const isMasters = courseTypes.includes("masters");
+      const isMinor   = courseTypes.includes("minor");
+      const isElective = courseTypes.includes("elective");
+
+      if (filterType === "Core"     && !isCore)     return false;
+      if (filterType === "Elective" && !isElective)  return false;
+      if (filterType === "Masters"  && !isMasters)   return false;
+      if (filterType === "Minor"    && !isMinor)     return false;
 
       if (filterStatus === "Offer" && !e.offer) return false;
       if (filterStatus === "Skip" && e.offer) return false;
@@ -399,7 +417,7 @@ export function RecommendationEngine() {
             <div className="pt-6 border-t border-slate-200/60 flex flex-wrap gap-x-8 gap-y-4 items-center animate-in fade-in slide-in-from-top-2">
               <ChipGroup label="Department" options={["All", "CSC", "BIF", "MTH", "STA"]} value={filterPrefix} onChange={setFilterPrefix} />
               <div className="w-px h-6 bg-slate-200" />
-              <ChipGroup label="Academic Category" options={["All", "Core", "Elective"]} value={filterType} onChange={setFilterType} />
+              <ChipGroup label="Academic Category" options={["All", "Core", "Elective", "Masters", "Minor"]} value={filterType} onChange={setFilterType} />
               <div className="w-px h-6 bg-slate-200" />
               <ChipGroup label="Offer Status" options={["All", "Offer", "Skip"]} value={filterStatus} onChange={setFilterStatus} />
               <div className="w-px h-6 bg-slate-200" />
