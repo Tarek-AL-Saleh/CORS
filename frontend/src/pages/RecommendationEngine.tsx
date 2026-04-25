@@ -5,7 +5,7 @@ import { DemandBadge } from "@/components/ui/DemandBadge";
 import { api } from "@/services/api";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-const getPrefix = (code: string) => code.match(/^[A-Z]+/)?.[0] ?? "";
+// const getPrefix = (code: string) => code.split("/").map(c => c.match(/^[A-Z]+/)?.[0] ?? "").filter(Boolean).join("/");
 const getDemandLevel = (v: number) => (v > 40 ? "High" : v > 15 ? "Medium" : "Low");
 
 // ─── Sub-components ──────────────────────────────────────────────────────────

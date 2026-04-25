@@ -55,28 +55,40 @@ class FeatureTransformer:
     def _calc_latent_demand(self, course_code: str, campus: str, current_year: int, current_semester: str, new_enrollees: int) -> int:
         course = self.courses.get(course_code)
         if not course or not course.prerequisites:
-            return 0
+            # No prerequisites = open to new enrollees (first-year courses etc.)
+            return new_enrollees
         try:
             prereqs = json.loads(course.prerequisites)
         except:
             prereqs = []
-        if not prereqs or self.off_df.empty:
+        if not prereqs:
             return new_enrollees
-        
+        if self.off_df.empty:
+            return 0
 
-        past_2_terms = self._get_past_terms(current_year, current_semester, N=2)
-        total_passed = 0
+        # Look back up to 4 terms to find the most recently offered instance of each prereq
+        past_4_terms = self._get_past_terms(current_year, current_semester, N=4)
+
+        prereq_passed_counts = []
         for p_code in prereqs:
-            for (y, s) in past_2_terms:
+            for (y, s) in past_4_terms:
                 match = self.off_df[
-                    (self.off_df['course_code'] == p_code) & 
-                    (self.off_df['campus'] == campus) & 
-                    (self.off_df['year'] == y) & 
+                    (self.off_df['course_code'] == p_code) &
+                    (self.off_df['campus'] == campus) &
+                    (self.off_df['year'] == y) &
                     (self.off_df['semester'] == s)
                 ]
                 if not match.empty:
-                    total_passed += int(match['passed_count'].sum())
-        return total_passed
+                    # Take only the most recent term for this prereq — no cross-term double-counting
+                    prereq_passed_counts.append(int(match['passed_count'].sum()))
+                    break
+
+        if not prereq_passed_counts:
+            return 0
+
+        # The bottleneck prerequisite limits advancement:
+        # Demand = students who passed ALL prerequisites = min across all prereqs
+        return min(prereq_passed_counts)
 
     def _calc_avg_fail_ratio_3y(self, course_code: str, campus: str, current_year: int) -> float:
         if self.off_df.empty: return 0.0
