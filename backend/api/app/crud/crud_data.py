@@ -40,6 +40,19 @@ def upsert_course(db: Session, course: domain.CourseBase):
     resolved_code = resolve_course_code(db, course.code, course.name)
     db_course = get_db_course(db, resolved_code)
     
+    # Resolve Prerequisites to unified codes once for the whole function
+    resolved_prereqs = []
+    if course.prerequisites:
+        try:
+            pr_list = json.loads(course.prerequisites) if isinstance(course.prerequisites, str) else course.prerequisites
+            if isinstance(pr_list, list):
+                for p in pr_list:
+                    resolved_prereqs.append(resolve_course_code(db, p))
+                resolved_prereqs = list(set(resolved_prereqs))
+        except:
+            pass
+    prereq_json = json.dumps(resolved_prereqs) if resolved_prereqs else None
+
     if db_course:
         # If we resolved to a different code (e.g. name match or alias), 
         # ensure the incoming code is in the aliases list and the code is unified
@@ -61,7 +74,7 @@ def upsert_course(db: Session, course: domain.CourseBase):
                         number=db_course.number,
                         type=db_course.type,
                         study_plan=db_course.study_plan,
-                        prerequisites=db_course.prerequisites,
+                        prerequisites=prereq_json, # Use fresh prereqs
                         is_math=db_course.is_math,
                         is_core=db_course.is_core,
                         course_level=db_course.course_level,
@@ -104,12 +117,15 @@ def upsert_course(db: Session, course: domain.CourseBase):
         db_course.number = course.number
         db_course.type = course.type
         db_course.study_plan = course.study_plan
-        db_course.prerequisites = course.prerequisites
+        db_course.prerequisites = prereq_json
         db_course.is_math = course.is_math
         db_course.is_core = course.is_core
         db_course.course_level = course.course_level
     else:
-        db_course = models.Course(**course.model_dump())
+        # New course creation
+        course_data = course.model_dump()
+        course_data["prerequisites"] = prereq_json
+        db_course = models.Course(**course_data)
         db.add(db_course)
     db.commit()
     db.refresh(db_course)
