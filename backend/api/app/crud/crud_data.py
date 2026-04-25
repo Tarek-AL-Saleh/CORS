@@ -67,14 +67,19 @@ def upsert_course(db: Session, course: domain.CourseBase):
                 # Check if we need to RENAME the Primary Key and move data
                 if original_db_code != new_unified_code:
                     # 1. Create the NEW unified Course record (copying from db_course)
+                    # For joint courses, we also joint the prefix and number if they differ
+                    import re
+                    joint_prefix = "/".join(sorted(list(set([re.match(r'^([A-Z]+)', c).group(1) for c in aliases if re.match(r'^([A-Z]+)', c)]))))
+                    joint_number = db_course.number # Usually the same for cross-listed
+
                     new_course = models.Course(
                         code=new_unified_code,
                         name=db_course.name,
-                        prefix=db_course.prefix,
-                        number=db_course.number,
+                        prefix=joint_prefix,
+                        number=joint_number,
                         type=db_course.type,
                         study_plan=db_course.study_plan,
-                        prerequisites=prereq_json, # Use fresh prereqs
+                        prerequisites=prereq_json,
                         is_math=db_course.is_math,
                         is_core=db_course.is_core,
                         course_level=db_course.course_level,
@@ -113,8 +118,15 @@ def upsert_course(db: Session, course: domain.CourseBase):
             db.rollback()
 
         db_course.name = course.name
-        db_course.prefix = course.prefix
-        db_course.number = course.number
+        # If it's a unified course, derive prefix from code, else use single prefix
+        if "/" in db_course.code:
+            import re
+            joint_prefix = "/".join(sorted(list(set([re.match(r'^([A-Z]+)', c.trim() if hasattr(c, "trim") else c.strip()).group(1) for c in db_course.code.split("/") if re.match(r'^([A-Z]+)', c.strip())]))))
+            db_course.prefix = joint_prefix
+            db_course.number = db_course.code.split("/")[0].replace(db_course.prefix.split("/")[0], "") # Fallback
+        else:
+            db_course.prefix = course.prefix
+            db_course.number = course.number
         db_course.type = course.type
         db_course.study_plan = course.study_plan
         db_course.prerequisites = prereq_json

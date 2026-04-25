@@ -190,7 +190,7 @@ export function RecommendationEngine() {
   };
 
   const activeFilters = [filterPrefix, filterType, filterStatus, filterDemand].filter(v => v !== "All").length
-    + (sortScore !== "none" || sortSections !== "none" ? 1 : 0);
+    + (sortScore !== "desc" || sortSections !== "none" ? 1 : 0);
 
   const resetFilters = () => {
     setFilterPrefix("All"); setFilterType("All");
@@ -203,7 +203,7 @@ export function RecommendationEngine() {
     .filter((e) => {
       const matchesPrefix = (code: string, prefix: string) => {
         if (prefix === "All") return true;
-        return code.split("/").some((part) => part.startsWith(prefix));
+        return code.split("/").some((part) => part.trim().startsWith(prefix));
       };
 
       if (!matchesPrefix(e.course_code, filterPrefix)) return false;

@@ -49,10 +49,12 @@ def run_course_unification(db: Session):
         # Create or Update Golden Course
         golden_course = db.query(models.Course).filter(models.Course.code == golden_code).first()
         if not golden_course:
+            import re
+            joint_prefix = "/".join(sorted(list(set([re.match(r'^([A-Z]+)', c).group(1) for c in codes if re.match(r'^([A-Z]+)', c)]))))
             golden_course = models.Course(
                 code=golden_code,
                 name=primary.name,
-                prefix=primary.prefix,
+                prefix=joint_prefix,
                 number=primary.number,
                 type=primary.type,
                 study_plan=primary.study_plan,
