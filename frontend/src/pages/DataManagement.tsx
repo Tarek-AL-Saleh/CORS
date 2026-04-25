@@ -208,14 +208,18 @@ export function DataManagement() {
   const campuses = ['All', ...Array.from(new Set(records.map(r => r.campus))).sort()]
   const prefixes = ['All', 'CSC', 'BIF', 'MTH', 'STA']
 
-  const getPrefix = (code: string) => code?.match(/^[A-Z]+/)?.[0] ?? ''
+  const matchesPrefix = (code: string, prefix: string) => {
+    if (prefix === 'All') return true
+    return code.split('/').some(part => part.startsWith(prefix))
+  }
+
   const getRatioLabel = (ratio: number) => ratio > 0.5 ? 'High' : ratio > 0.25 ? 'Mid' : 'Low'
 
   const filtered = records.filter(r => {
     if (filterYear   !== 'All' && String(r.year) !== filterYear) return false
     if (filterSem    !== 'All' && r.semester !== filterSem) return false
     if (filterCampus !== 'All' && r.campus !== filterCampus) return false
-    if (filterPrefix !== 'All' && getPrefix(r.course_code) !== filterPrefix) return false
+    if (!matchesPrefix(r.course_code, filterPrefix)) return false
     if (filterRatio  !== 'All' && getRatioLabel(r.fail_ratio) !== filterRatio) return false
     return true
   })

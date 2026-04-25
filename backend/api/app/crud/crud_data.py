@@ -42,23 +42,62 @@ def upsert_course(db: Session, course: domain.CourseBase):
     
     if db_course:
         # If we resolved to a different code (e.g. name match or alias), 
-        # ensure the incoming code is in the aliases list
-        if resolved_code != course.code:
-            try:
-                aliases = json.loads(db_course.aliases) if db_course.aliases else []
-                if course.code not in aliases:
-                    aliases.append(course.code)
-                    aliases.sort()
+        # ensure the incoming code is in the aliases list and the code is unified
+        original_db_code = db_course.code
+        try:
+            aliases = json.loads(db_course.aliases) if db_course.aliases else [original_db_code]
+            if course.code not in aliases:
+                aliases.append(course.code)
+                aliases.sort()
+                new_unified_code = "/".join(aliases)
+                
+                # Check if we need to RENAME the Primary Key and move data
+                if original_db_code != new_unified_code:
+                    # 1. Create the NEW unified Course record (copying from db_course)
+                    new_course = models.Course(
+                        code=new_unified_code,
+                        name=db_course.name,
+                        prefix=db_course.prefix,
+                        number=db_course.number,
+                        type=db_course.type,
+                        study_plan=db_course.study_plan,
+                        prerequisites=db_course.prerequisites,
+                        is_math=db_course.is_math,
+                        is_core=db_course.is_core,
+                        course_level=db_course.course_level,
+                        aliases=json.dumps(aliases)
+                    )
+                    db.add(new_course)
+                    db.flush()
+
+                    # 2. Move Offerings
+                    db.query(models.CourseOffering).filter(models.CourseOffering.course_code == original_db_code).update({"course_code": new_unified_code})
+                    
+                    # 3. Update Schedules
+                    db.query(models.ScheduleEntry).filter(models.ScheduleEntry.course_code == original_db_code).update({"course_code": new_unified_code})
+                    
+                    # 4. Update Prerequisite chains in OTHER courses
+                    other_courses = db.query(models.Course).filter(models.Course.prerequisites.ilike(f'%{original_db_code}%')).all()
+                    for oc in other_courses:
+                        try:
+                            pr = json.loads(oc.prerequisites)
+                            pr = [p if p != original_db_code else new_unified_code for p in pr]
+                            oc.prerequisites = json.dumps(list(set(pr)))
+                        except: pass
+
+                    # 5. Delete the old standalone course
+                    db.delete(db_course)
+                    db.commit()
+                    
+                    # Switch reference to the new one for the rest of the function
+                    db_course = new_course
+                    resolved_code = new_unified_code
+                else:
+                    # Just update the aliases list if code didn't change
                     db_course.aliases = json.dumps(aliases)
-                    # If we just added a new alias, maybe update the ID to the unified format
-                    new_unified_code = "/".join(aliases)
-                    if db_course.code != new_unified_code:
-                        # This is a bit tricky since CODE is a primary key.
-                        # We'll stick to the existing resolved_code for now to avoid PK mutation issues
-                        # or just keep it as is. The migration script will clean it up on next boot.
-                        pass
-            except:
-                pass
+        except Exception as e:
+            print(f"Inline Migration Error: {e}")
+            db.rollback()
 
         db_course.name = course.name
         db_course.prefix = course.prefix
