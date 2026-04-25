@@ -208,7 +208,7 @@ export function RecommendationEngine() {
 
       if (!matchesPrefix(e.course_code, filterPrefix)) return false;
 
-      const isCore = e.course_code.split("/").some(c => ["MTH", "STA"].includes(c.match(/^[A-Z]+/)?.[0] || "")) || courseTypeMap[e.course_code] === "core";
+      const isCore = e.course_code.split("/").some((c: string) => ["MTH", "STA"].includes(c.match(/^[A-Z]+/)?.[0] || "")) || courseTypeMap[e.course_code] === "core";
       if (filterType === "Core" && !isCore) return false;
       if (filterType === "Elective" && isCore) return false;
 
