@@ -71,9 +71,8 @@ export function Dashboard({ onNavigate }: { onNavigate?: (p: PageId) => void }) 
         <KPICard
           title="Average Failure Rate"
           value={`${metrics.average_fail_ratio.toFixed(1)}%`}
-          trend="-0.5%"
+          trend="Global"
           icon={<AlertTriangle />}
-          trendUp={false}
           description="Historical percentage of failing grades across all recorded course offerings."
         />
       </div>
