@@ -20,8 +20,6 @@ async def lifespan(app: FastAPI):
         models.Base.metadata.drop_all(bind=engine)
         print("Database wiped.")
 
-    from dotenv import load_dotenv
-    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../.env"))
 
     # Ensure tables are created
     models.Base.metadata.create_all(bind=engine)

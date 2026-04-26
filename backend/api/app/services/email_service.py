@@ -1,14 +1,10 @@
 import os
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
-from dotenv import load_dotenv
-
-# Load environment variables from the backend/.env file
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../../.env"))
 
 def send_2fa_code(to_email: str, code: str):
-    api_key = os.environ.get('SENDGRID_API_KEY')
-    from_email = os.environ.get('FROM_EMAIL')
+    api_key = os.getenv('SENDGRID_API_KEY')
+    from_email = os.getenv('FROM_EMAIL')
     
     if not api_key or not from_email:
         print("Error: SENDGRID_API_KEY or FROM_EMAIL not found in environment.")
