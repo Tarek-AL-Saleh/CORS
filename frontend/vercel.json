@@ -10,7 +10,7 @@
     },
     {
       "source": "/docs",
-      "destination": "https://na-48b5b2de.mintlify.dev/"
+      "destination": "https://na-48b5b2de.mintlify.dev/docs"
     },
     {
       "source": "/docs/llms.txt",
@@ -34,7 +34,7 @@
     },
     {
       "source": "/docs/:path*",
-      "destination": "https://na-48b5b2de.mintlify.dev/:path*"
+      "destination": "https://na-48b5b2de.mintlify.dev/docs/:path*"
     },
     {
       "source": "/mintlify-assets/:path+",
