@@ -2,43 +2,43 @@
   "rewrites": [
     {
       "source": "/_mintlify/:path*",
-      "destination": "https://na-48b5b2de.mintlify.app/_mintlify/:path*"
+      "destination": "https://na-48b5b2de.mintlify.dev/_mintlify/:path*"
     },
     {
       "source": "/api/request",
-      "destination": "https://na-48b5b2de.mintlify.app/_mintlify/api/request"
+      "destination": "https://na-48b5b2de.mintlify.dev/_mintlify/api/request"
     },
     {
       "source": "/docs",
-      "destination": "https://na-48b5b2de.mintlify.app/"
+      "destination": "https://na-48b5b2de.mintlify.dev/"
     },
     {
       "source": "/docs/llms.txt",
-      "destination": "https://na-48b5b2de.mintlify.app/llms.txt"
+      "destination": "https://na-48b5b2de.mintlify.dev/llms.txt"
     },
     {
       "source": "/docs/llms-full.txt",
-      "destination": "https://na-48b5b2de.mintlify.app/llms-full.txt"
+      "destination": "https://na-48b5b2de.mintlify.dev/llms-full.txt"
     },
     {
       "source": "/docs/sitemap.xml",
-      "destination": "https://na-48b5b2de.mintlify.app/sitemap.xml"
+      "destination": "https://na-48b5b2de.mintlify.dev/sitemap.xml"
     },
     {
       "source": "/docs/robots.txt",
-      "destination": "https://na-48b5b2de.mintlify.app/robots.txt"
+      "destination": "https://na-48b5b2de.mintlify.dev/robots.txt"
     },
     {
       "source": "/docs/mcp",
-      "destination": "https://na-48b5b2de.mintlify.app/mcp"
+      "destination": "https://na-48b5b2de.mintlify.dev/mcp"
     },
     {
       "source": "/docs/:path*",
-      "destination": "https://na-48b5b2de.mintlify.app/:path*"
+      "destination": "https://na-48b5b2de.mintlify.dev/:path*"
     },
     {
       "source": "/mintlify-assets/:path+",
-      "destination": "https://na-48b5b2de.mintlify.app/mintlify-assets/:path+"
+      "destination": "https://na-48b5b2de.mintlify.dev/mintlify-assets/:path+"
     }
   ]
 }
