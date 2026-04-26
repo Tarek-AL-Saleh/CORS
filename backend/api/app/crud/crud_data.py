@@ -190,12 +190,7 @@ def upsert_offering(db: Session, offering: domain.CourseOfferingBase):
             db_off.passed_count = offering.passed_count
             db_off.failed_count = offering.failed_count
             db_off.is_offered = offering.is_offered
-            
-            # Standardize fail ratio for standalone courses too
-            if db_off.total_enrolled > 0:
-                db_off.fail_ratio = float(db_off.failed_count / db_off.total_enrolled)
-            else:
-                db_off.fail_ratio = 0.0
+            db_off.fail_ratio = offering.fail_ratio
     else:
         # Ensure the code used is the resolved one
         off_data = offering.model_dump()

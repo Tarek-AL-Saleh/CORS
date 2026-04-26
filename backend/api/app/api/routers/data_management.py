@@ -125,6 +125,33 @@ async def upload_offerings(file: UploadFile = File(...), db: Session = Depends(g
         # Normalize column names for extremely resilient parsing
         df.columns = [str(c).strip().lower() for c in df.columns]
         
+        # Validation for required column categories
+        cols = set(df.columns)
+        required_map = {
+            "Year": ["year", "yr"],
+            "Semester": ["semester", "term", "sem"],
+            "Campus": ["campus"],
+            "Enrollment": ["total_enrolled", "total enrolled", "enrolled", "total"],
+            "Passed Count": ["passed_count", "passed", "pass"],
+            "Failed Count": ["failed_count", "failed", "fail"]
+        }
+        
+        missing = []
+        for label, variants in required_map.items():
+            if not any(v in cols for v in variants):
+                missing.append(label)
+        
+        # Identity is special: (course_code OR (prefix AND number))
+        has_code = any(v in cols for v in ["course_code", "course code", "course"])
+        has_prefix = any(v in cols for v in ["course_prefix", "prefix"])
+        has_number = any(v in cols for v in ["course_num", "number", "course_number"])
+        
+        if not (has_code or (has_prefix and has_number)):
+            missing.append("Course Identifier (Course Code or Prefix+Number)")
+            
+        if missing:
+            raise HTTPException(status_code=400, detail=f"Missing required columns: {', '.join(missing)}")
+
         count = 0
         for _, row in df.iterrows():
             # Try multiple column name variations for course code
@@ -150,14 +177,21 @@ async def upload_offerings(file: UploadFile = File(...), db: Session = Depends(g
             enrolled = int(row.get("total_enrolled", row.get("total enrolled", row.get("enrolled", row.get("total", 0)))))
             passed = int(row.get("passed_count", row.get("passed", row.get("pass", 0))))
             failed = int(row.get("failed_count", row.get("failed", row.get("fail", 0))))
-            fail_ratio = float(row.get("fail_ratio", row.get("failure_rate", 0.0)))
-            
-            if enrolled > 0:
+            # Use provided fail_ratio if available, else calculate
+            user_fail_ratio = row.get("fail_ratio", row.get("failure_rate"))
+            if pd.notna(user_fail_ratio):
+                fail_ratio = float(user_fail_ratio)
+            elif enrolled > 0:
                 fail_ratio = float(failed / enrolled)
             else:
                 fail_ratio = 0.0
             
-            is_off = bool(row.get("is_offered", row.get("is offered", row.get("offered", True))))
+            # Use provided is_offered if available, else default to True
+            user_is_offered = row.get("is_offered", row.get("is offered", row.get("offered")))
+            if pd.notna(user_is_offered):
+                is_off = bool(user_is_offered)
+            else:
+                is_off = True
 
             ob = domain.CourseOfferingBase(
                 year=y,
