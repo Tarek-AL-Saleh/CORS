@@ -1,0 +1,44 @@
+{
+  "rewrites": [
+    {
+      "source": "/_mintlify/:path*",
+      "destination": "https://na-48b5b2de.mintlify.app/_mintlify/:path*"
+    },
+    {
+      "source": "/api/request",
+      "destination": "https://na-48b5b2de.mintlify.app/_mintlify/api/request"
+    },
+    {
+      "source": "/docs",
+      "destination": "https://na-48b5b2de.mintlify.app/docs"
+    },
+    {
+      "source": "/docs/llms.txt",
+      "destination": "https://na-48b5b2de.mintlify.app/llms.txt"
+    },
+    {
+      "source": "/docs/llms-full.txt",
+      "destination": "https://na-48b5b2de.mintlify.app/llms-full.txt"
+    },
+    {
+      "source": "/docs/sitemap.xml",
+      "destination": "https://na-48b5b2de.mintlify.app/sitemap.xml"
+    },
+    {
+      "source": "/docs/robots.txt",
+      "destination": "https://na-48b5b2de.mintlify.app/robots.txt"
+    },
+    {
+      "source": "/docs/mcp",
+      "destination": "https://na-48b5b2de.mintlify.app/mcp"
+    },
+    {
+      "source": "/docs/:path*",
+      "destination": "https://na-48b5b2de.mintlify.app/docs/:path*"
+    },
+    {
+      "source": "/mintlify-assets/:path+",
+      "destination": "https://na-48b5b2de.mintlify.app/mintlify-assets/:path+"
+    }
+  ]
+}
