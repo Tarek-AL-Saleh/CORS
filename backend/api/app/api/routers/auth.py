@@ -35,14 +35,15 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     code = f"{random.randint(100000, 999999)}"
     two_step_codes[request.username] = code
     
-    # Mock sending email
-    print(f"\n==================================================")
-    print(f"MOCK EMAIL TO: {user.email}")
-    print(f"SUBJECT: Your CORS Login Code")
-    print(f"BODY: Your 2-step verification code is: {code}")
-    print(f"==================================================\n")
+    # Send actual email
+    from app.services.email_service import send_2fa_code
+    success = send_2fa_code(user.email, code)
     
-    return {"message": "2FA code sent to email requires verification", "status": "2FA_REQUIRED"}
+    if not success:
+        # Fallback for local development if SendGrid is not configured
+        print(f"\n[DEV FALLBACK] EMAIL TO: {user.email} | CODE: {code}\n")
+    
+    return {"message": "Verification code sent to email", "status": "2FA_REQUIRED"}
 
 @router.post("/verify")
 def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depends(get_db)):

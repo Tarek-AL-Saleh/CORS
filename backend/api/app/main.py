@@ -20,6 +20,9 @@ async def lifespan(app: FastAPI):
         models.Base.metadata.drop_all(bind=engine)
         print("Database wiped.")
 
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../.env"))
+
     # Ensure tables are created
     models.Base.metadata.create_all(bind=engine)
     
@@ -40,12 +43,16 @@ async def lifespan(app: FastAPI):
         run_course_unification(db)
 
         # 1. Bootstrapping Admin User
-        user = db.query(models.User).filter(models.User.username == "admin").first()
+        admin_user = os.getenv("ADMIN_USERNAME", "admin")
+        admin_pass = os.getenv("ADMIN_PASSWORD", "admin")
+        admin_email = os.getenv("ADMIN_EMAIL", "tarek.alsaleh@lau.edu")
+
+        user = db.query(models.User).filter(models.User.username == admin_user).first()
         if not user:
             new_admin = models.User(
-                username="admin",
-                password_hash=get_password_hash("admin"),
-                email="tarek.alsaleh@lau.edu",
+                username=admin_user,
+                password_hash=get_password_hash(admin_pass),
+                email=admin_email,
                 is_active=True
             )
             db.add(new_admin)
