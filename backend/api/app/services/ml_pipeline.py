@@ -57,12 +57,12 @@ class MLPipeline:
             
             # Freshman baseline: MTH101
             f_off = next((o for o in term_offs if o.course_code == "MTH101"), None)
-            h_fresh = f_off.enrolled_count if f_off else 0
+            h_fresh = f_off.total_enrolled if f_off else 0
             
             # Sophomore baseline: CSC243 or BIF243 (check aliases/joint codes too)
             s_codes = {"CSC243", "BIF243", "BIF243/CSC243", "CSC243/BIF243"}
             s_offs = [o for o in term_offs if o.course_code in s_codes]
-            h_soph = max([o.enrolled_count for o in s_offs]) if s_offs else 0
+            h_soph = max([o.total_enrolled for o in s_offs]) if s_offs else 0
             
             h_masters = 5 # Assumption
             
