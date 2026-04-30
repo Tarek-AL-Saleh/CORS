@@ -39,6 +39,14 @@ class DataAuditLog(Base):
     description = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class ActionLog(Base):
+    __tablename__ = 'action_logs'
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class PredictionRun(Base):
     __tablename__ = 'prediction_runs'
     id = Column(Integer, primary_key=True, index=True)
@@ -131,3 +139,4 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     email = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)

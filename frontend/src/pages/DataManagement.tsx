@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Upload, AlertCircle, RefreshCw, SlidersHorizontal, X, Info } from 'lucide-react'
+import { CheckCircle2, Upload, AlertCircle, RefreshCw, SlidersHorizontal, X, Info, Trash2 } from 'lucide-react'
 import { FailRatioBar } from '@/components/ui/FailRatioBar'
 import { api } from '@/services/api'
 
@@ -152,6 +152,7 @@ export function DataManagement() {
   const [records, setRecords] = useState<any[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [helpId, setHelpId] = useState<UploadKey | null>(null)
+  const [resetConfirm, setResetConfirm] = useState<UploadKey | null>(null)
 
   const [filterYear, setFilterYear]       = useState('All')
   const [filterSem, setFilterSem]         = useState('All')
@@ -195,6 +196,20 @@ export function DataManagement() {
     } catch (error: any) {
       alert('Error: ' + (error.response?.data?.detail || error.message))
     } finally { setLoading(false) }
+  }
+
+  const handleReset = async (key: UploadKey) => {
+    setLoading(true)
+    try {
+      await api.data.resetTable(key)
+      setUploaded(p => ({ ...p, [key]: false }))
+      fetchRecords()
+    } catch (error: any) {
+      alert('Error: ' + (error.response?.data?.detail || error.message))
+    } finally { 
+      setLoading(false)
+      setResetConfirm(null)
+    }
   }
 
   const UPLOAD_ZONES = [
@@ -259,6 +274,15 @@ export function DataManagement() {
                  <Info className="w-4 h-4" />
                </button>
 
+               {/* Reset Trigger */}
+               <button 
+                onClick={(e) => { e.preventDefault(); setResetConfirm(zone.key) }}
+                className="absolute top-4 right-14 z-20 w-8 h-8 rounded-full bg-main/50 backdrop-blur-md border border-premium flex items-center justify-center text-muted hover:text-[var(--status-error)] hover:border-[var(--status-error)]/40 transition-all hover:scale-110 shadow-sm"
+                title="Reset Table Data"
+               >
+                 <Trash2 className="w-4 h-4" />
+               </button>
+
               <label
                 onDragOver={(e) => { e.preventDefault(); setDragging(zone.key) }}
                 onDragLeave={() => setDragging(null)}
@@ -295,6 +319,35 @@ export function DataManagement() {
           )
         })}
       </div>
+
+      {/* Reset Confirmation Modal */}
+      {resetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface border border-premium rounded-xl p-6 w-[320px] shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-full bg-[var(--status-error)]/10 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6 text-[var(--status-error)]" />
+            </div>
+            <h3 className="text-lg font-bold text-main mb-2 capitalize">Reset {resetConfirm} Data</h3>
+            <p className="text-sm text-muted mb-6">Are you sure you want to permanently delete all records in the {resetConfirm} table? This action cannot be undone.</p>
+            <div className="flex w-full gap-3">
+              <button 
+                onClick={() => setResetConfirm(null)}
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-main bg-main border border-premium hover:bg-surface transition-colors"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => handleReset(resetConfirm)}
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-white bg-[var(--status-error)] hover:bg-[var(--status-error)]/90 shadow-md transition-colors"
+                disabled={loading}
+              >
+                {loading ? 'Deleting...' : 'Delete All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-surface rounded-xl border border-premium shadow-sm overflow-hidden mb-12 relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-[var(--brand-primary)] z-20" />

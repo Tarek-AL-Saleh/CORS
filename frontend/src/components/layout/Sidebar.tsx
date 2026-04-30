@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { LayoutDashboard, Database, Lightbulb, GitFork, CalendarDays, PanelLeftClose, PanelLeftOpen, Sun, Moon, LogOut } from 'lucide-react'
+import { LayoutDashboard, Database, Lightbulb, GitFork, CalendarDays, PanelLeftClose, PanelLeftOpen, Sun, Moon, LogOut, Users, Settings, ScrollText } from 'lucide-react'
 import type { NavItem, PageId } from '@/types'
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard',             iconName: 'LayoutDashboard' },
+  { id: 'dashboard' as PageId, label: 'Dashboard',             iconName: 'LayoutDashboard' },
   { id: 'data',      label: 'Data Management',       iconName: 'Database'        },
   { id: 'engine',    label: 'Recommendation Engine', iconName: 'Lightbulb'       },
   { id: 'graph',     label: 'Prerequisite Graph',    iconName: 'GitFork'         },
   { id: 'scheduler', label: 'Scheduler',             iconName: 'CalendarDays'    },
+  { id: 'users',     label: 'Users Management',      iconName: 'Users', adminOnly: true },
+  { id: 'logs',      label: 'System Logs',           iconName: 'ScrollText', adminOnly: true },
+  { id: 'settings',  label: 'My Settings',           iconName: 'Settings'        },
 ]
 
 const IconMap: Record<string, React.ElementType> = {
@@ -16,6 +19,9 @@ const IconMap: Record<string, React.ElementType> = {
   Lightbulb,
   GitFork,
   CalendarDays,
+  Users,
+  Settings,
+  ScrollText,
 }
 
 interface SidebarProps {
@@ -88,7 +94,7 @@ export function Sidebar({
             Main Menu
           </p>
         )}
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter(item => !item.adminOnly || isAdmin).map((item) => {
           const Icon   = IconMap[item.iconName]
           const active = currentPage === item.id
           return (
@@ -155,7 +161,7 @@ export function Sidebar({
           {isOpen && (
             <div className="min-w-0">
               <p className="text-xs font-semibold text-main truncate">{username}</p>
-              {isAdmin && <p className="text-[10px] text-[var(--status-success)] font-bold tracking-wide uppercase">Admin</p>}
+              {isAdmin && <p className="text-[10px] text-muted font-medium tracking-wide">Admin</p>}
             </div>
           )}
         </div>

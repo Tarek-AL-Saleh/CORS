@@ -42,7 +42,8 @@ export const api = {
       return apiClient.post('/data/upload/doctors', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       }).then(res => res.data);
-    }
+    },
+    resetTable: (table: string) => apiClient.delete(`/data/reset/${table}`).then(res => res.data)
   },
   predict: {
     train: () => apiClient.post('/predict/train').then(res => res.data),
@@ -64,5 +65,16 @@ export const api = {
   },
   dash: {
     getMetrics: () => apiClient.get('/dashboard/metrics').then(res => res.data)
+  },
+  users: {
+    getUsers: () => apiClient.get('/users/').then(res => res.data),
+    createUser: (data: any) => apiClient.post('/users/', data).then(res => res.data),
+    updateUser: (id: number, data: any) => apiClient.put(`/users/${id}`, data).then(res => res.data),
+    deleteUser: (id: number) => apiClient.delete(`/users/${id}`).then(res => res.data),
+    updateMe: (data: any) => apiClient.put('/users/me/update', data).then(res => res.data)
+  },
+  logs: {
+    getActionLogs: () => apiClient.get('/logs/actions').then(res => res.data),
+    getDataLogs: () => apiClient.get('/logs/data').then(res => res.data)
   }
 };

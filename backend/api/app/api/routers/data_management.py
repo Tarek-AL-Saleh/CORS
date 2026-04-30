@@ -19,6 +19,21 @@ def list_courses(db: Session = Depends(get_db)):
 def list_offerings(db: Session = Depends(get_db)):
     return crud_data.get_all_offerings(db)
 
+@router.delete("/reset/{table_name}")
+def reset_table(table_name: str, db: Session = Depends(get_db)):
+    if table_name == "courses":
+        db.query(models.Course).delete()
+    elif table_name == "offerings":
+        db.query(models.CourseOffering).delete()
+    elif table_name == "doctors":
+        db.query(models.Doctor).delete()
+    else:
+        raise HTTPException(status_code=400, detail="Invalid table name")
+    
+    crud_data.create_audit_log(db, table_name, "DELETE", "Truncated table via reset action.")
+    db.commit()
+    return {"status": "success"}
+
 @router.post("/upload/courses")
 async def upload_course_index(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file.filename.endswith('.json'):

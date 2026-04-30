@@ -1,11 +1,12 @@
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
-export type PageId = 'dashboard' | 'data' | 'engine' | 'graph' | 'scheduler';
+export type PageId = 'dashboard' | 'data' | 'engine' | 'graph' | 'scheduler' | 'users' | 'settings' | 'logs';
 
 export interface NavItem {
   id: PageId;
   label: string;
   iconName: string;
+  adminOnly?: boolean;
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
+import { api } from '@/services/api'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Dashboard } from '@/pages/Dashboard'
 import { DataManagement } from '@/pages/DataManagement'
 import { RecommendationEngine } from '@/pages/RecommendationEngine'
 import { PrerequisiteGraph } from '@/pages/PrerequisiteGraph'
 import { Scheduler } from '@/pages/Scheduler'
+import { UsersManagement } from '@/pages/UsersManagement'
+import { UserSettings } from '@/pages/UserSettings'
+import { ActionLogs } from '@/pages/ActionLogs'
 import { LoginPage } from '@/pages/LoginPage'
 import { useNavigation } from '@/hooks/useNavigation'
 import type { PageId } from '@/types'
@@ -15,6 +19,9 @@ const PAGE_MAP: (navigate: (p: PageId) => void) => Record<PageId, React.ReactEle
   engine:    <RecommendationEngine />,
   graph:     <PrerequisiteGraph />,
   scheduler: <Scheduler />,
+  users:     <UsersManagement />,
+  settings:  <UserSettings />,
+  logs:      <ActionLogs />,
 })
 
 export default function App() {
@@ -63,14 +70,14 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      // Assuming api.auth.logout is available, we can import it
-      // Let's just clear localStorage and reload for simplicity if api is not imported
+      await api.auth.logout()
+    } catch (e) {
+      console.error(e)
+    } finally {
       localStorage.removeItem('auth_user')
       localStorage.removeItem('auth_admin')
       setIsAuthenticated(false)
       window.location.reload()
-    } catch (e) {
-      console.error(e)
     }
   }
 

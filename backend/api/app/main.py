@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.db.database import engine
-from app.api.routers import auth, data_management, predictions, scheduler, graph, dashboard
+from app.api.routers import auth, data_management, predictions, scheduler, graph, dashboard, users, logs
 from app.db import models
 
 @asynccontextmanager
@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE prediction_runs ADD COLUMN IF NOT EXISTS campus VARCHAR;"))
             conn.execute(text("ALTER TABLE courses ADD COLUMN IF NOT EXISTS aliases TEXT;"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;"))
             conn.commit()
     except Exception as e:
         print(f"Schema migration warning: {e}")
@@ -51,10 +52,15 @@ async def lifespan(app: FastAPI):
                 username=admin_user,
                 password_hash=get_password_hash(admin_pass),
                 email=admin_email,
-                is_active=True
+                is_active=True,
+                is_admin=True
             )
             db.add(new_admin)
             db.commit()
+        else:
+            if not getattr(user, 'is_admin', False):
+                user.is_admin = True
+                db.commit()
 
         # 2. Auto-training if models are missing (for Ephemeral Filesystems like Render)
         from app.services.ml_pipeline import MLPipeline, MODEL_DIR
@@ -108,3 +114,5 @@ app.include_router(predictions.router, prefix="/predict", tags=["Predictions"])
 app.include_router(scheduler.router, prefix="/scheduler", tags=["Scheduler"])
 app.include_router(graph.router, prefix="/graph", tags=["Graph"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(logs.router, prefix="/logs", tags=["Logs"])

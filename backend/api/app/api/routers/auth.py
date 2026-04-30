@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
+import jwt
+from jwt import PyJWTError
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -79,10 +81,35 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
     return {
         "access_token": access_token, 
         "token_type": "bearer",
-        "username": user.username
+        "username": user.username,
+        "is_admin": getattr(user, 'is_admin', False)
     }
 
 @router.post("/logout")
 def logout(response: Response):
     response.delete_cookie("access_token")
     return {"message": "Logged out successfully"}
+
+def get_current_user(request: Request, db: Session = Depends(get_db)):
+    token = request.cookies.get("access_token")
+    if not token or not token.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    token = token.split(" ")[1]
+    try:
+        payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+def get_current_admin(current_user: models.User = Depends(get_current_user)):
+    if not getattr(current_user, "is_admin", False):
+        raise HTTPException(status_code=403, detail="Not enough privileges")
+    return current_user
