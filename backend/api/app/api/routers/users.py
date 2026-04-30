@@ -36,11 +36,11 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 @router.get("/", response_model=List[UserResponse])
-def get_users(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
+def get_users(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.User).all()
 
 @router.post("/", response_model=UserResponse)
-def create_user(req: UserCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
+def create_user(req: UserCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     existing = db.query(models.User).filter(models.User.username == req.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -62,7 +62,7 @@ def create_user(req: UserCreate, db: Session = Depends(get_db), current_user: mo
     return new_user
 
 @router.put("/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, req: UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
+def update_user(user_id: int, req: UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -76,7 +76,7 @@ def update_user(user_id: int, req: UserUpdate, db: Session = Depends(get_db), cu
     return user
 
 @router.delete("/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
