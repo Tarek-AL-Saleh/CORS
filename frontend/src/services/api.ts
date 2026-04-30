@@ -18,6 +18,7 @@ export const api = {
     login: (username: string, password: string) => apiClient.post('/auth/login', { username, password }).then(res => res.data),
     verify2FA: (username: string, code: string) => apiClient.post('/auth/verify', { username, code }).then(res => res.data),
     logout: () => apiClient.post('/auth/logout').then(res => res.data),
+    getMe: () => apiClient.get('/auth/me').then(res => res.data),
   },
   data: {
     getCourses: () => apiClient.get('/data/courses').then(res => res.data),

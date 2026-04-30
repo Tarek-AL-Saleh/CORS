@@ -36,11 +36,11 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 @router.get("/", response_model=List[UserResponse])
-def get_users(db: Session = Depends(get_db)):
+def get_users(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
     return db.query(models.User).all()
 
 @router.post("/", response_model=UserResponse)
-def create_user(req: UserCreate, db: Session = Depends(get_db)):
+def create_user(req: UserCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
     existing = db.query(models.User).filter(models.User.username == req.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -57,12 +57,12 @@ def create_user(req: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     # Log Action
-    create_action_log(db, "Emergency_Bypass", "USER_MGMT", f"Created user {new_user.username} (Admin: {req.is_admin})")
+    create_action_log(db, current_user.username, "USER_MGMT", f"Created user {new_user.username} (Admin: {req.is_admin})")
     
     return new_user
 
 @router.put("/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, req: UserUpdate, db: Session = Depends(get_db)):
+def update_user(user_id: int, req: UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -72,11 +72,11 @@ def update_user(user_id: int, req: UserUpdate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     
-    create_action_log(db, "Emergency_Bypass", "USER_MGMT", f"Updated user {user.username} details.")
+    create_action_log(db, current_user.username, "USER_MGMT", f"Updated user {user.username} details.")
     return user
 
 @router.delete("/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -86,7 +86,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.delete(user)
     db.commit()
     
-    create_action_log(db, "Emergency_Bypass", "USER_MGMT", f"Deleted user {user.username}.")
+    create_action_log(db, current_user.username, "USER_MGMT", f"Deleted user {user.username}.")
     return {"status": "success"}
 
 @router.put("/me/update")

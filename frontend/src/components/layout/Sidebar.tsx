@@ -8,7 +8,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'engine',    label: 'Recommendation Engine', iconName: 'Lightbulb'       },
   { id: 'graph',     label: 'Prerequisite Graph',    iconName: 'GitFork'         },
   { id: 'scheduler', label: 'Scheduler',             iconName: 'CalendarDays'    },
-  { id: 'users',     label: 'Users Management',      iconName: 'Users', adminOnly: false },
+  { id: 'users',     label: 'Users Management',      iconName: 'Users', adminOnly: true },
   { id: 'logs',      label: 'System Logs',           iconName: 'ScrollText', adminOnly: true },
   { id: 'settings',  label: 'My Settings',           iconName: 'Settings'        },
 ]

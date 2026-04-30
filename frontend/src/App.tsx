@@ -39,15 +39,21 @@ export default function App() {
   // In a real app we'd call `/auth/me` to read the httpOnly cookie.
   // For basic UX demonstration we'll allow entering if they have a non-empty user state
   useEffect(() => {
-    // If we wanted to check the cookie, we'd hit a backend endpoint /auth/me here
-    // For now, if the user reloads we just assume they need to login again unless we check an endpoint or localStorage.
-    // Let's use localStorage to persist the active username session status.
-    const savedUser = localStorage.getItem('auth_user')
-    if (savedUser) {
-      setIsAuthenticated(true)
-    } else {
-      setIsAuthenticated(false)
+    const syncSession = async () => {
+      try {
+        const user = await api.auth.getMe()
+        localStorage.setItem('auth_user', user.username)
+        if (user.is_admin) localStorage.setItem('auth_admin', 'true')
+        else localStorage.removeItem('auth_admin')
+        setIsAuthenticated(true)
+      } catch (e) {
+        // If /me fails, clear and prompt login
+        localStorage.removeItem('auth_user')
+        localStorage.removeItem('auth_admin')
+        setIsAuthenticated(false)
+      }
     }
+    syncSession()
   }, [])
 
   useEffect(() => {

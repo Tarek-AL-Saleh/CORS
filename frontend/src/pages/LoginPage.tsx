@@ -3,7 +3,7 @@ import { BookOpen, Key, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react
 import { api } from '@/services/api'
 
 interface LoginPageProps {
-  onLoginSuccess: (username: string) => void
+  onLoginSuccess: (username: string, isAdmin: boolean) => void
 }
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
@@ -48,7 +48,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       const res = await api.auth.verify2FA(username, code)
       // Save token state or whatever is needed globally if we aren't purely using httpOnly
       // But the api request sets an httpOnly cookie
-      onLoginSuccess(res.username)
+      onLoginSuccess(res.username, res.is_admin)
     } catch (err: any) {
       setErrorMsg(err.response?.data?.detail || 'Invalid verification code')
     } finally {

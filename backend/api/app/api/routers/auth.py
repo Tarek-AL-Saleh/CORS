@@ -76,8 +76,7 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
         value=f"Bearer {access_token}",
         httponly=True,
         max_age=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="none",
-        secure=True,
+        samesite="lax",
     )
     
     create_action_log(db, user.username, "LOGIN", "Successful 2-step authentication login.")
@@ -86,7 +85,7 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
         "access_token": access_token, 
         "token_type": "bearer",
         "username": user.username,
-        "is_admin": getattr(user, 'is_admin', False)
+        "is_admin": bool(user.is_admin) if user.is_admin is not None else False
     }
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
@@ -118,4 +117,12 @@ def logout(response: Response, db: Session = Depends(get_db), current_user: mode
     create_action_log(db, current_user.username, "LOGOUT", "User logged out of the session.")
     response.delete_cookie("access_token")
     return {"message": "Logged out successfully"}
+
+@router.get("/me")
+def get_me(current_user: models.User = Depends(get_current_user)):
+    return {
+        "username": current_user.username,
+        "email": current_user.email,
+        "is_admin": bool(current_user.is_admin) if current_user.is_admin is not None else False
+    }
 
