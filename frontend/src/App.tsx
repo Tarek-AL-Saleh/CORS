@@ -28,6 +28,7 @@ export default function App() {
   const { currentPage, navigate } = useNavigation('dashboard')
   const [collapsed, setCollapsed] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null) // null = loading
+  const [isAdmin, setIsAdmin] = useState(false)
   
   // Theme logic
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -43,13 +44,19 @@ export default function App() {
       try {
         const user = await api.auth.getMe()
         localStorage.setItem('auth_user', user.username)
-        if (user.is_admin) localStorage.setItem('auth_admin', 'true')
-        else localStorage.removeItem('auth_admin')
+        if (user.is_admin) {
+          localStorage.setItem('auth_admin', 'true')
+          setIsAdmin(true)
+        } else {
+          localStorage.removeItem('auth_admin')
+          setIsAdmin(false)
+        }
         setIsAuthenticated(true)
       } catch (e) {
         // If /me fails, clear and prompt login
         localStorage.removeItem('auth_user')
         localStorage.removeItem('auth_admin')
+        setIsAdmin(false)
         setIsAuthenticated(false)
       }
     }
@@ -67,10 +74,15 @@ export default function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light')
 
-  const handleLoginSuccess = (username: string, isAdmin?: boolean) => {
+  const handleLoginSuccess = (username: string, is_admin?: boolean) => {
     localStorage.setItem('auth_user', username)
-    if (isAdmin) localStorage.setItem('auth_admin', 'true')
-    else localStorage.removeItem('auth_admin')
+    if (is_admin) {
+      localStorage.setItem('auth_admin', 'true')
+      setIsAdmin(true)
+    } else {
+      localStorage.removeItem('auth_admin')
+      setIsAdmin(false)
+    }
     setIsAuthenticated(true)
   }
 
@@ -108,6 +120,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onLogout={handleLogout}
+        isAdmin={isAdmin}
       />
       <main className={`flex-1 ${isScheduler ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         {PAGE_MAP(navigate)[currentPage]}

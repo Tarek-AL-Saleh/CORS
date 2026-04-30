@@ -32,6 +32,7 @@ interface SidebarProps {
   theme:            'light' | 'dark'
   onToggleTheme:    () => void
   onLogout:         () => void
+  isAdmin:          boolean
 }
 
 export function Sidebar({ 
@@ -41,11 +42,11 @@ export function Sidebar({
   onToggleCollapse,
   theme,
   onToggleTheme,
-  onLogout
+  onLogout,
+  isAdmin
 }: SidebarProps) {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const username = localStorage.getItem('auth_user') || 'User'
-  const isAdmin = localStorage.getItem('auth_admin') === 'true'
 
   // True width = fully open permanently
   const isOpen = !collapsed

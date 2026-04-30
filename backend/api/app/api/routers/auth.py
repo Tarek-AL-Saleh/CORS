@@ -70,13 +70,16 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
-    # Set Cookie
+    # Use Secure/SameSite=None only in production (HTTPS)
+    is_prod = os.getenv("RENDER") is not None or os.getenv("VERCEL") is not None
+    
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
         max_age=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
+        samesite="none" if is_prod else "lax",
+        secure=True if is_prod else False,
     )
     
     create_action_log(db, user.username, "LOGIN", "Successful 2-step authentication login.")
