@@ -46,8 +46,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       setLoading(true)
       setErrorMsg('')
       const res = await api.auth.verify2FA(username, code)
-      // Save token state or whatever is needed globally if we aren't purely using httpOnly
-      // But the api request sets an httpOnly cookie
+      localStorage.setItem('access_token', res.access_token);
       onLoginSuccess(res.username, res.is_admin)
     } catch (err: any) {
       setErrorMsg(err.response?.data?.detail || 'Invalid verification code')

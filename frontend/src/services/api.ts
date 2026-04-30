@@ -13,6 +13,14 @@ export const apiClient = axios.create({
   },
 });
 
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const api = {
   auth: {
     login: (username: string, password: string) => apiClient.post('/auth/login', { username, password }).then(res => res.data),

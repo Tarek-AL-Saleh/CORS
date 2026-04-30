@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import timedelta
 import random
+import os
 
 from app.db.database import get_db
 from app.db import models
@@ -78,8 +79,8 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
         value=f"Bearer {access_token}",
         httponly=True,
         max_age=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="none" if is_prod else "lax",
-        secure=True if is_prod else False,
+        samesite="none",
+        secure=False,
     )
     
     create_action_log(db, user.username, "LOGIN", "Successful 2-step authentication login.")
@@ -92,7 +93,14 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
     }
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
-    token = request.cookies.get("access_token")
+    auth_header = request.headers.get("Authorization")
+    token = None
+    
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header
+    else:
+        token = request.cookies.get("access_token")
+        
     if not token or not token.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
     

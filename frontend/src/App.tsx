@@ -42,6 +42,9 @@ export default function App() {
   useEffect(() => {
     const syncSession = async () => {
       try {
+        const token = localStorage.getItem('access_token');
+        if (!token) throw new Error("No token"); // Fast fail if no token
+
         const user = await api.auth.getMe()
         localStorage.setItem('auth_user', user.username)
         if (user.is_admin) {
@@ -56,6 +59,7 @@ export default function App() {
         // If /me fails, clear and prompt login
         localStorage.removeItem('auth_user')
         localStorage.removeItem('auth_admin')
+        localStorage.removeItem('access_token')
         setIsAdmin(false)
         setIsAuthenticated(false)
       }
@@ -94,6 +98,7 @@ export default function App() {
     } finally {
       localStorage.removeItem('auth_user')
       localStorage.removeItem('auth_admin')
+      localStorage.removeItem('access_token')
       setIsAuthenticated(false)
       window.location.reload()
     }
