@@ -1,4 +1,5 @@
-import { LayoutDashboard, Database, Lightbulb, GitFork, CalendarDays, PanelLeftClose, PanelLeftOpen, Sun, Moon } from 'lucide-react'
+import { useState } from 'react'
+import { LayoutDashboard, Database, Lightbulb, GitFork, CalendarDays, PanelLeftClose, PanelLeftOpen, Sun, Moon, LogOut } from 'lucide-react'
 import type { NavItem, PageId } from '@/types'
 
 const NAV_ITEMS: NavItem[] = [
@@ -24,6 +25,7 @@ interface SidebarProps {
   onToggleCollapse: () => void
   theme:            'light' | 'dark'
   onToggleTheme:    () => void
+  onLogout:         () => void
 }
 
 export function Sidebar({ 
@@ -32,8 +34,13 @@ export function Sidebar({
   collapsed, 
   onToggleCollapse,
   theme,
-  onToggleTheme 
+  onToggleTheme,
+  onLogout
 }: SidebarProps) {
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const username = localStorage.getItem('auth_user') || 'User'
+  const isAdmin = localStorage.getItem('auth_admin') === 'true'
+
   // True width = fully open permanently
   const isOpen = !collapsed
 
@@ -130,18 +137,56 @@ export function Sidebar({
           )}
         </button>
 
-        <div className={`flex items-center gap-3 ${isOpen ? 'px-1' : ''}`}>
-          <div className="w-8 h-8 rounded-full bg-main flex items-center justify-center text-[10px] font-bold text-main border border-premium flex-none capitalize">
-            R
+        <button
+          onClick={() => setShowLogoutModal(true)}
+          className={`flex items-center gap-3 w-full rounded-lg text-xs font-bold uppercase tracking-widest ${
+            isOpen ? 'px-3 py-3' : 'px-0 py-3 justify-center'
+          } text-[var(--status-error)] border border-[var(--status-error)]/20 hover:bg-[var(--status-error)] hover:text-white transition-colors mt-2`}
+          title="Log Out"
+        >
+          <LogOut className="w-[18px] h-[18px]" />
+          {isOpen && <span>Log Out</span>}
+        </button>
+
+        <div className={`flex items-center gap-3 mt-2 ${isOpen ? 'px-1' : ''}`}>
+          <div className="w-8 h-8 rounded-full bg-main flex items-center justify-center text-[10px] font-bold text-main border border-premium flex-none capitalize uppercase">
+            {username.charAt(0)}
           </div>
           {isOpen && (
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-main truncate">Office of Registrar</p>
-              <p className="text-[10px] text-muted font-medium tracking-wide">University System</p>
+              <p className="text-xs font-semibold text-main truncate">{username}</p>
+              {isAdmin && <p className="text-[10px] text-[var(--status-success)] font-bold tracking-wide uppercase">Admin</p>}
             </div>
           )}
         </div>
       </div>
+
+      {/* Custom Logout Modal Overlay */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface border border-premium rounded-xl p-6 w-[320px] shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-full bg-[var(--status-error)]/10 flex items-center justify-center mb-4">
+              <LogOut className="w-6 h-6 text-[var(--status-error)]" />
+            </div>
+            <h3 className="text-lg font-bold text-main mb-2">Sign Out</h3>
+            <p className="text-sm text-muted mb-6">Are you sure you want to end your current session?</p>
+            <div className="flex w-full gap-3">
+              <button 
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-main bg-main border border-premium hover:bg-surface transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={onLogout}
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-white bg-[var(--status-error)] hover:bg-[var(--status-error)]/90 shadow-md transition-colors"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   )
 }

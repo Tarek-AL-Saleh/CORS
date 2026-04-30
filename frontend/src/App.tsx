@@ -54,9 +54,24 @@ export default function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light')
 
-  const handleLoginSuccess = (username: string) => {
+  const handleLoginSuccess = (username: string, isAdmin?: boolean) => {
     localStorage.setItem('auth_user', username)
+    if (isAdmin) localStorage.setItem('auth_admin', 'true')
+    else localStorage.removeItem('auth_admin')
     setIsAuthenticated(true)
+  }
+
+  const handleLogout = async () => {
+    try {
+      // Assuming api.auth.logout is available, we can import it
+      // Let's just clear localStorage and reload for simplicity if api is not imported
+      localStorage.removeItem('auth_user')
+      localStorage.removeItem('auth_admin')
+      setIsAuthenticated(false)
+      window.location.reload()
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   // Scheduler manages its own internal scroll
@@ -79,6 +94,7 @@ export default function App() {
         onToggleCollapse={() => setCollapsed(c => !c)}
         theme={theme}
         onToggleTheme={toggleTheme}
+        onLogout={handleLogout}
       />
       <main className={`flex-1 ${isScheduler ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         {PAGE_MAP(navigate)[currentPage]}

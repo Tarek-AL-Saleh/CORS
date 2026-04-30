@@ -111,7 +111,7 @@ export function PrerequisiteGraph() {
       {/* Header */}
       <div className="flex justify-between items-end pb-8 rounded-none">
         <div>
-          <h1 className="text-3xl font-display font-bold text-main tracking-tight">Prerequisite Topology</h1>
+          <h1 className="text-3xl font-display font-bold text-main tracking-tight">Prerequisite Graph Topology</h1>
           <p className="text-muted text-sm mt-2 font-medium">Visualizing institutional course dependencies and systemic flow bottlenecks</p>
         </div>
         <div className="flex items-center gap-3 text-xs font-bold text-muted uppercase tracking-widest bg-surface px-4 py-2 rounded-lg border border-premium shadow-sm">
