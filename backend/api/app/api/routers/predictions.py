@@ -11,6 +11,8 @@ from app.services.ml_pipeline import MLPipeline
 from app.services.section_planner import SectionPlanner
 from app.services.ml_feature_transformer import FeatureTransformer
 from app.schemas import domain
+from app.api.routers.auth import get_current_user
+from app.crud.crud_data import create_action_log
 
 router = APIRouter()
 
@@ -55,10 +57,11 @@ def get_next_term(db: Session = Depends(get_db)):
     return {"year": next_year, "semester": next_sem}
 
 @router.post("/train")
-def train_model(db: Session = Depends(get_db)):
+def train_model(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     pipeline = MLPipeline(db)
     try:
         result = pipeline.train_and_save()
+        create_action_log(db, current_user.username, "TRAIN", "Manually triggered model re-calibration/training.")
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -75,7 +78,7 @@ def initialize_dataset(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/bulk", response_model=domain.PredictionRunResponse)
-def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get_db)):
+def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     pipeline = MLPipeline(db)
     planner = SectionPlanner(db)
     
@@ -220,6 +223,7 @@ def generate_bulk_predictions(req: BulkPredictRequest, db: Session = Depends(get
     
     db.commit()
     db.refresh(run)
+    create_action_log(db, current_user.username, "BULK", f"Generated bulk prediction run: {req.run_name} for {req.target_semester} {req.target_year} ({req.target_campus})")
     return run
 
 @router.get("/runs", response_model=List[domain.PredictionRunResponse])

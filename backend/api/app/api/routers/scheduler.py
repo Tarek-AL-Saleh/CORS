@@ -10,6 +10,8 @@ from app.db.database import get_db
 from app.db import models
 from app.schemas import domain
 from pydantic import BaseModel
+from app.api.routers.auth import get_current_user
+from app.crud.crud_data import create_action_log
 
 router = APIRouter()
 
@@ -104,7 +106,7 @@ def check_doctor_availability(db: Session, doctor_id: int, pattern: str, start_t
             )
 
 @router.post("/", response_model=ScheduleEntryResponse)
-def create_schedule_entry(entry: ScheduleEntryCreate, db: Session = Depends(get_db)):
+def create_schedule_entry(entry: ScheduleEntryCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     # 1. Check doctor availability constraints against doctor_availability table
     if entry.doctor_id and entry.doctor_id != 0:
         check_doctor_availability(db, entry.doctor_id, entry.day, entry.start_time, entry.duration_mins)
@@ -143,21 +145,23 @@ def create_schedule_entry(entry: ScheduleEntryCreate, db: Session = Depends(get_
     db.add(db_entry)
     db.commit()
     db.refresh(db_entry)
+    create_action_log(db, current_user.username, "SCHEDULE", f"Placed course {entry.course_code} {entry.section_name} in {entry.room} at {entry.start_time}")
     return db.query(models.ScheduleEntry).options(joinedload(models.ScheduleEntry.doctor)).filter(models.ScheduleEntry.id == db_entry.id).first()
 
 # minutes_to_time_str is defined above check_doctor_availability
 
 @router.delete("/{entry_id}")
-def remove_schedule_entry(entry_id: int, db: Session = Depends(get_db)):
+def remove_schedule_entry(entry_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     entry = db.query(models.ScheduleEntry).filter(models.ScheduleEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Not found")
     db.delete(entry)
     db.commit()
+    create_action_log(db, current_user.username, "SCHEDULE", f"Removed course {entry.course_code} from the schedule.")
     return {"status": "deleted"}
 
 @router.patch("/{entry_id}", response_model=ScheduleEntryResponse)
-def update_schedule_entry(entry_id: int, update_data: dict, db: Session = Depends(get_db)):
+def update_schedule_entry(entry_id: int, update_data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_entry = db.query(models.ScheduleEntry).filter(models.ScheduleEntry.id == entry_id).first()
     if not db_entry:
         raise HTTPException(status_code=404, detail="Entry not found")
@@ -200,6 +204,7 @@ def update_schedule_entry(entry_id: int, update_data: dict, db: Session = Depend
     
     db.commit()
     db.refresh(db_entry)
+    create_action_log(db, current_user.username, "SCHEDULE", f"Modified schedule entry for {db_entry.course_code}.")
     return db.query(models.ScheduleEntry).options(joinedload(models.ScheduleEntry.doctor)).filter(models.ScheduleEntry.id == entry_id).first()
 
 @router.get("/export")

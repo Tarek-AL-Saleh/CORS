@@ -37,6 +37,7 @@ class DataAuditLog(Base):
     table_affected = Column(String, nullable=False)
     action = Column(String, nullable=False)  # "UPLOAD", "EDIT", "DELETE"
     description = Column(String, nullable=False)
+    username = Column(String, nullable=True) # Added to track who did what
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class ActionLog(Base):

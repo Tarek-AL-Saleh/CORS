@@ -270,7 +270,12 @@ def upsert_doctor(db: Session, doc_data: dict):
     db.refresh(db_doc)
     return db_doc
 
-def create_audit_log(db: Session, table: str, action: str, desc: str):
-    log = models.DataAuditLog(table_affected=table, action=action, description=desc)
+def create_audit_log(db: Session, table: str, action: str, desc: str, username: str = "System"):
+    log = models.DataAuditLog(table_affected=table, action=action, description=desc, username=username)
+    db.add(log)
+    db.commit()
+
+def create_action_log(db: Session, username: str, action: str, desc: str):
+    log = models.ActionLog(username=username, action=action, description=desc)
     db.add(log)
     db.commit()

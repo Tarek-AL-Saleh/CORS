@@ -99,6 +99,7 @@ export function ActionLogs() {
                 <tr>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-muted uppercase tracking-widest">Timestamp</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-muted uppercase tracking-widest">Table Affected</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-muted uppercase tracking-widest">User</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-muted uppercase tracking-widest">Action</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-muted uppercase tracking-widest">Description</th>
                 </tr>
@@ -106,7 +107,7 @@ export function ActionLogs() {
               <tbody>
                 {dataLogs.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="p-12 text-center text-muted">No data logs found.</td>
+                    <td colSpan={5} className="p-12 text-center text-muted">No data logs found.</td>
                   </tr>
                 ) : dataLogs.map(log => (
                   <tr key={log.id} className="border-b border-premium hover:bg-main/50">
@@ -114,6 +115,7 @@ export function ActionLogs() {
                       {new Date(log.created_at).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 font-bold text-main">{log.table_affected}</td>
+                    <td className="px-6 py-4 text-muted">{log.username || "System"}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-2 py-1 rounded text-[10px] font-bold tracking-widest uppercase border ${
                         log.action === 'UPLOAD' ? 'bg-[var(--status-success)]/10 text-[var(--status-success)] border-[var(--status-success)]/20' :

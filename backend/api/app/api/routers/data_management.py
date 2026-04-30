@@ -8,6 +8,7 @@ from app.db.database import get_db
 from app.db import models
 from app.crud import crud_data
 from app.schemas import domain
+from app.api.routers.auth import get_current_admin
 
 router = APIRouter()
 
@@ -20,7 +21,7 @@ def list_offerings(db: Session = Depends(get_db)):
     return crud_data.get_all_offerings(db)
 
 @router.delete("/reset/{table_name}")
-def reset_table(table_name: str, db: Session = Depends(get_db)):
+def reset_table(table_name: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
     if table_name == "courses":
         db.query(models.Course).delete()
     elif table_name == "offerings":
@@ -30,12 +31,12 @@ def reset_table(table_name: str, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail="Invalid table name")
     
-    crud_data.create_audit_log(db, table_name, "DELETE", "Truncated table via reset action.")
+    crud_data.create_audit_log(db, table_name, "DELETE", "Truncated table via reset action.", username=current_user.username)
     db.commit()
     return {"status": "success"}
 
 @router.post("/upload/courses")
-async def upload_course_index(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_course_index(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
     if not file.filename.endswith('.json'):
         raise HTTPException(status_code=400, detail="Must be a JSON file")
     
@@ -104,14 +105,14 @@ async def upload_course_index(file: UploadFile = File(...), db: Session = Depend
             
         if count == 0:
             raise HTTPException(status_code=400, detail="0 courses processed. Check if your JSON has a 'code' field.")
-        crud_data.create_audit_log(db, "courses", "UPLOAD", f"Uploaded course index: {count} courses processed.")
+        crud_data.create_audit_log(db, "courses", "UPLOAD", f"Uploaded course index: {count} courses processed.", username=current_user.username)
         return {"status": "success", "processed": count}
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/upload/offerings")
-async def upload_offerings(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_offerings(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
     if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
         raise HTTPException(status_code=400, detail="Must be a CSV or XLSX file")
     
@@ -224,13 +225,13 @@ async def upload_offerings(file: UploadFile = File(...), db: Session = Depends(g
             
         if count == 0:
             raise HTTPException(status_code=400, detail="0 offerings processed. Please ensure your file has valid 'Year' and 'Course Code' (or 'Prefix' and 'Number') columns.")
-        crud_data.create_audit_log(db, "course_offerings", "UPLOAD", f"Uploaded history: {count} records processed.")
+        crud_data.create_audit_log(db, "course_offerings", "UPLOAD", f"Uploaded history: {count} records processed.", username=current_user.username)
         return {"status": "success", "processed": count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/upload/doctors")
-async def upload_doctors(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_doctors(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
     if not (file.filename.endswith('.json') or file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
         raise HTTPException(status_code=400, detail="Must be a JSON, CSV, or XLSX file")
     
@@ -298,7 +299,7 @@ async def upload_doctors(file: UploadFile = File(...), db: Session = Depends(get
             db_doc = crud_data.upsert_doctor(db, doc)
             if db_doc: count += 1
             
-        crud_data.create_audit_log(db, "doctors", "UPLOAD", f"Uploaded faculty: {count} records processed.")
+        crud_data.create_audit_log(db, "doctors", "UPLOAD", f"Uploaded faculty: {count} records processed.", username=current_user.username)
         return {"status": "success", "processed": count}
 
     except Exception as e:

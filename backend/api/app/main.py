@@ -31,6 +31,7 @@ async def lifespan(app: FastAPI):
             conn.execute(text("ALTER TABLE prediction_runs ADD COLUMN IF NOT EXISTS campus VARCHAR;"))
             conn.execute(text("ALTER TABLE courses ADD COLUMN IF NOT EXISTS aliases TEXT;"))
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE data_audit_logs ADD COLUMN IF NOT EXISTS username VARCHAR;"))
             conn.commit()
     except Exception as e:
         print(f"Schema migration warning: {e}")
@@ -42,14 +43,15 @@ async def lifespan(app: FastAPI):
         run_course_unification(db)
 
         # 1. Bootstrapping Admin User
-        admin_user = os.getenv("ADMIN_USERNAME", "admin")
+        admin_username = os.getenv("ADMIN_USERNAME", "admin")
         admin_pass = os.getenv("ADMIN_PASSWORD", "admin")
         admin_email = os.getenv("ADMIN_EMAIL", "tarek.alsaleh@lau.edu")
 
-        user = db.query(models.User).filter(models.User.username == admin_user).first()
+        user = db.query(models.User).filter(models.User.username == admin_username).first()
         if not user:
+            print(f"Creating bootstrap admin: {admin_username}")
             new_admin = models.User(
-                username=admin_user,
+                username=admin_username,
                 password_hash=get_password_hash(admin_pass),
                 email=admin_email,
                 is_active=True,
@@ -58,7 +60,9 @@ async def lifespan(app: FastAPI):
             db.add(new_admin)
             db.commit()
         else:
-            if not getattr(user, 'is_admin', False):
+            # Force admin status for the designated bootstrap user
+            if not user.is_admin:
+                print(f"Promoting {admin_username} to administrator status...")
                 user.is_admin = True
                 db.commit()
 

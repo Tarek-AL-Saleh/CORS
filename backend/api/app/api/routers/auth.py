@@ -10,6 +10,7 @@ import random
 from app.db.database import get_db
 from app.db import models
 from app.core import security
+from app.crud.crud_data import create_action_log
 
 router = APIRouter()
 
@@ -78,6 +79,8 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
         samesite="lax",
     )
     
+    create_action_log(db, user.username, "LOGIN", "Successful 2-step authentication login.")
+    
     return {
         "access_token": access_token, 
         "token_type": "bearer",
@@ -86,7 +89,8 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
     }
 
 @router.post("/logout")
-def logout(response: Response):
+def logout(response: Response, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    create_action_log(db, current_user.username, "LOGOUT", "User logged out of the session.")
     response.delete_cookie("access_token")
     return {"message": "Logged out successfully"}
 

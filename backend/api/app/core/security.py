@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key-that-is-at-least-32-characters-long")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 

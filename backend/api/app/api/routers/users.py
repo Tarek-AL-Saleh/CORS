@@ -7,7 +7,7 @@ from app.db.database import get_db
 from app.db import models
 from app.core import security
 from app.api.routers.auth import get_current_user, get_current_admin
-from app.crud.crud_data import create_audit_log
+from app.crud.crud_data import create_audit_log, create_action_log
 
 router = APIRouter()
 
@@ -57,7 +57,7 @@ def create_user(req: UserCreate, db: Session = Depends(get_db), current_user: mo
     db.refresh(new_user)
     
     # Log Action
-    create_audit_log(db, "users", "CREATE", f"Admin {current_user.username} created user {new_user.username}.")
+    create_action_log(db, current_user.username, "USER_MGMT", f"Created user {new_user.username} (Admin: {req.is_admin})")
     
     return new_user
 
@@ -72,7 +72,7 @@ def update_user(user_id: int, req: UserUpdate, db: Session = Depends(get_db), cu
     db.commit()
     db.refresh(user)
     
-    create_audit_log(db, "users", "EDIT", f"Admin {current_user.username} updated user {user.username}.")
+    create_action_log(db, current_user.username, "USER_MGMT", f"Updated user {user.username} details.")
     return user
 
 @router.delete("/{user_id}")
@@ -86,7 +86,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: model
     db.delete(user)
     db.commit()
     
-    create_audit_log(db, "users", "DELETE", f"Admin {current_user.username} deleted user {user.username}.")
+    create_action_log(db, current_user.username, "USER_MGMT", f"Deleted user {user.username}.")
     return {"status": "success"}
 
 @router.put("/me/update")
@@ -107,5 +107,5 @@ def update_me(req: UserUpdateMe, db: Session = Depends(get_db), current_user: mo
         
     db.commit()
     
-    create_audit_log(db, "users", "EDIT", f"User {current_user.username} updated their profile.")
+    create_action_log(db, current_user.username, "PROFILE", "Updated personal profile information.")
     return {"status": "success"}
