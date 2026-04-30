@@ -76,7 +76,8 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
         value=f"Bearer {access_token}",
         httponly=True,
         max_age=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
+        samesite="none",
+        secure=True,
     )
     
     create_action_log(db, user.username, "LOGIN", "Successful 2-step authentication login.")
