@@ -88,12 +88,6 @@ def verify_2fa(request: Verify2FARequest, response: Response, db: Session = Depe
         "is_admin": getattr(user, 'is_admin', False)
     }
 
-@router.post("/logout")
-def logout(response: Response, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    create_action_log(db, current_user.username, "LOGOUT", "User logged out of the session.")
-    response.delete_cookie("access_token")
-    return {"message": "Logged out successfully"}
-
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     token = request.cookies.get("access_token")
     if not token or not token.startswith("Bearer "):
@@ -117,3 +111,10 @@ def get_current_admin(current_user: models.User = Depends(get_current_user)):
     if not getattr(current_user, "is_admin", False):
         raise HTTPException(status_code=403, detail="Not enough privileges")
     return current_user
+
+@router.post("/logout")
+def logout(response: Response, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    create_action_log(db, current_user.username, "LOGOUT", "User logged out of the session.")
+    response.delete_cookie("access_token")
+    return {"message": "Logged out successfully"}
+
