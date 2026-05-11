@@ -319,4 +319,4 @@ The ERD source is also available in Mermaid format at [`erd.mmd`](./erd.mmd).
 
 ## Authors
 
-**Tarek AL-Saleh** & **Ayman** — Lebanese American University, CSC 599 Capstone Project
+**Tarek AL-Saleh** & **Ayman Kacan** — Lebanese American University, CSC 599 Capstone Project with **Dr. Danielle Azar**
