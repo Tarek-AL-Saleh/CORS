@@ -1,0 +1,128 @@
+erDiagram
+    courses {
+        String code PK
+        String name
+        String prefix
+        String number
+        String type
+        String study_plan
+        Text prerequisites
+        Boolean is_math
+        Boolean is_core
+        Integer course_level
+        Text aliases
+    }
+
+    course_offerings {
+        Integer id PK
+        Integer year
+        String semester
+        String campus
+        String course_code
+        Integer total_enrolled
+        Integer passed_count
+        Integer failed_count
+        Float fail_ratio
+        Boolean is_offered
+        DateTime created_at
+    }
+
+    data_audit_logs {
+        Integer id PK
+        String table_affected
+        String action
+        String description
+        String username
+        DateTime created_at
+    }
+
+    action_logs {
+        Integer id PK
+        String username
+        String action
+        String description
+        DateTime created_at
+    }
+
+    prediction_runs {
+        Integer id PK
+        String run_name
+        String campus
+        Integer target_year
+        String target_semester
+        String model_version
+        DateTime created_at
+    }
+
+    prediction_entries {
+        Integer id PK
+        Integer run_id FK
+        String course_code
+        String campus
+        Integer latent_demand
+        Integer bottleneck_score
+        Float offer_score
+        Float confidence
+        Boolean offer
+        Integer projected_sections
+        Boolean is_tech_elective_pool
+    }
+
+    doctors {
+        Integer id PK
+        String name
+        Text allowed_courses
+    }
+
+    doctor_availability {
+        Integer id PK
+        Integer doctor_id FK
+        String days
+        String start
+        String end
+    }
+
+    schedule_entries {
+        Integer id PK
+        String course_code
+        String section_name
+        Integer doctor_id FK
+        String day
+        String start_time
+        Integer duration_mins
+        String room
+    }
+
+    training_records {
+        Integer id PK
+        Integer year
+        String semester
+        String campus
+        String course_code
+        String course_prefix
+        Integer is_core
+        Integer is_math
+        Float avg_fail_ratio_3y
+        Integer recent_fail_count
+        Integer is_offered_last_year
+        Integer latent_demand_count
+        Integer bottleneck_score
+        Float plan_alignment_score
+        Integer course_level
+        Integer gap_since_last_offered
+        Integer is_offered
+        DateTime created_at
+    }
+
+    users {
+        Integer id PK
+        String username
+        String password_hash
+        String email
+        Boolean is_active
+        Boolean is_admin
+    }
+
+    prediction_runs ||--o{ prediction_entries : "has"
+    doctors ||--o{ doctor_availability : "has"
+    doctors ||--o{ schedule_entries : "assigned_to"
